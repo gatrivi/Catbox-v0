@@ -45,6 +45,49 @@
   height: 1px;
 }
 
+/* Authentic Stained Glass Theme effects */
+.stained-glass-card {
+  background: rgba(12, 8, 4, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1.5px solid rgba(194, 147, 52, 0.4);
+  box-shadow: 
+    inset 0 1px 1px rgba(255, 235, 180, 0.2),
+    0 4px 20px rgba(0, 0, 0, 0.85);
+  position: relative;
+}
+
+.stained-glass-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(235, 216, 170, 0.05) 0%, transparent 40%, rgba(63, 38, 15, 0.15) 100%);
+  border-radius: inherit;
+}
+
+.stained-glass-panel-active {
+  border: 1.5px solid var(--color-gold-400);
+  box-shadow: 
+    0 0 12px rgba(194, 147, 52, 0.35),
+    inset 0 0 6px rgba(194, 147, 52, 0.15);
+}
+
+/* Stained glass leaded divisions grid overlay */
+.stained-glass-grid-overlay {
+  background-image: 
+    linear-gradient(rgba(194, 147, 52, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(194, 147, 52, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.stained-glass-segment {
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  background: rgba(194, 147, 52, 0.08);
+  border: 1px solid rgba(194, 147, 52, 0.2);
+}
+
+
 /* Elegant custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

@@ -1,12 +1,15 @@
 import express from "express";
 import path from "path";
 import crypto from "crypto";
+import cors from "cors";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
+import { CatboxAtomicEngine } from "./src/utils/atomicEngine";
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
+app.use(cors({ origin: "*" }));
 app.use(express.json());
 
 // Server-side encryption variables
@@ -47,6 +50,45 @@ interface DevProfile {
   refBoostEnabled: boolean;
   adProviderCount: number;
   cattbackBalance: number;
+  affiliateLinks?: Record<string, string>;
+  referredUserCount?: number;
+  earlyBirdTier?: string;
+  daysSinceBoost?: number;
+  omitHouseTips?: boolean;
+}
+
+// Early-bird decay and multiplier calculations
+export function calculateDecayedFee(profile: DevProfile): number {
+  const baseline = profile.platformFeePercent === 25 ? 25 : 15;
+  const minFee = 3; // best rate (maximum developer split of 97%)
+  const days = profile.daysSinceBoost !== undefined ? profile.daysSinceBoost : 90;
+  
+  let effectiveFee = baseline;
+  let tier = "STABLE_BASELINE";
+  
+  if (days <= 30) {
+    effectiveFee = minFee;
+    tier = "EARLY_BIRD_ELITE";
+  } else if (days < 90) {
+    // Models linear percentage decay back to stable baseline (15% or 25%) over last 60 days
+    const progress = (days - 30) / 60;
+    effectiveFee = minFee + (baseline - minFee) * progress;
+    effectiveFee = Math.round(effectiveFee * 100) / 100;
+    tier = "GROWTH_BOOSTED";
+  } else {
+    effectiveFee = baseline;
+    tier = "STABLE_BASELINE";
+  }
+  
+  profile.earlyBirdTier = tier;
+  return effectiveFee;
+}
+
+export function boostProfileToMaximum(profile: DevProfile): number {
+  profile.referredUserCount = (profile.referredUserCount || 0) + 1;
+  profile.daysSinceBoost = 0;
+  profile.refBoostEnabled = true;
+  return calculateDecayedFee(profile);
 }
 
 // Generate block hashes
@@ -127,6 +169,14 @@ const devProfiles: Record<string, DevProfile> = {
     refBoostEnabled: false,
     adProviderCount: 2,
     cattbackBalance: 0.22,
+    affiliateLinks: {
+      neon: "https://neodeco-db.io",
+      supabase: "https://saffron-host.net"
+    },
+    referredUserCount: 0,
+    earlyBirdTier: "STABLE_BASELINE",
+    daysSinceBoost: 90,
+    omitHouseTips: false
   },
 };
 
@@ -197,6 +247,14 @@ app.post("/api/ledger/reset", (req, res) => {
     refBoostEnabled: false,
     adProviderCount: 2,
     cattbackBalance: 0.22,
+    affiliateLinks: {
+      neon: "https://neodeco-db.io",
+      supabase: "https://saffron-host.net"
+    },
+    referredUserCount: 0,
+    earlyBirdTier: "STABLE_BASELINE",
+    daysSinceBoost: 90,
+    omitHouseTips: false
   };
 
   res.json({ success: true, ledger });
@@ -346,8 +404,9 @@ Infuse a sophisticated, classic, or slightly humorous tone. Do NOT use quotes or
   }
 
   // Calculate Revenue Splits based on selected platform fee
+  const activePlatformFeePercent = calculateDecayedFee(profile);
   const grossAdRevenue = parseFloat((bidRate * (1 + Math.random() * 0.35)).toFixed(3));
-  const platformFee = parseFloat(((grossAdRevenue * profile.platformFeePercent) / 100).toFixed(4));
+  const platformFee = parseFloat(((grossAdRevenue * activePlatformFeePercent) / 100).toFixed(4));
   const devPayout = parseFloat((grossAdRevenue - platformFee).toFixed(4));
 
   // Determine if this provider was invited/created by a third-party to issue a Cattback!
@@ -374,7 +433,7 @@ Infuse a sophisticated, classic, or slightly humorous tone. Do NOT use quotes or
 
   const blockType = actionType === "CLICK" ? "AD_CLICK" : "AD_IMPRESSION";
   const desc = `${format} ${actionType === "CLICK" ? "[CLICK-THROUGH]": "[DISPLAY SURFACE]"}: "${adMessage}"`;
-  const block = createBlock(blockType, developerId, devPayout, platformFee, profile.platformFeePercent, desc, selectedProviderName);
+  const block = createBlock(blockType, developerId, devPayout, platformFee, activePlatformFeePercent, desc, selectedProviderName);
   ledger.push(block);
 
   if (creatorCattbackBlock) {
@@ -490,11 +549,214 @@ app.post("/api/ledger/payout", (req, res) => {
 // Get profile
 app.get("/api/developer/:id", (req, res) => {
   const profile = devProfiles[req.params.id] || devProfiles["my_account"];
+  if (profile) {
+    calculateDecayedFee(profile);
+  }
   res.json({ success: true, profile });
+});
+
+// Submit / Save custom affiliate urls
+app.post("/api/developer/affiliate-links", (req, res) => {
+  const { neon, supabase } = req.body;
+  const profile = devProfiles["my_account"];
+  if (profile) {
+    profile.affiliateLinks = {
+      neon: neon || "https://neodeco-db.io",
+      supabase: supabase || "https://saffron-host.net"
+    };
+    res.json({ success: true, profile });
+  } else {
+    res.status(404).json({ success: false, error: "Profile not found" });
+  }
+});
+
+// Save house-ad omission preferences
+app.post("/api/developer/omit-tips", (req, res) => {
+  const { omitHouseTips } = req.body;
+  const profile = devProfiles["my_account"];
+  if (profile) {
+    profile.omitHouseTips = !!omitHouseTips;
+    res.json({ success: true, profile });
+  } else {
+    res.status(404).json({ success: false, error: "Profile not found" });
+  }
+});
+
+// Trigger referral increase and max-split boost
+app.post("/api/developer/boost", (req, res) => {
+  const profile = devProfiles["my_account"];
+  if (profile) {
+    const activeFee = boostProfileToMaximum(profile);
+    const bonusReward = 1.00; // direct bonus payout
+    profile.balance = parseFloat((profile.balance + bonusReward).toFixed(4));
+    
+    const block = createBlock(
+      "REFERRAL_BONUS",
+      "my_account",
+      bonusReward,
+      0.0,
+      0,
+      `Viral Referral Registered: Payout split boosted back to maximum! State: ${profile.earlyBirdTier}`,
+      "Catbox Viral Engine"
+    );
+    ledger.push(block);
+
+    res.json({ success: true, profile, currentFee: activeFee });
+  } else {
+    res.status(404).json({ success: false, error: "Profile not found" });
+  }
+});
+
+// Simulate the decay timer manually
+app.post("/api/developer/simulate-decay", (req, res) => {
+  const { days } = req.body;
+  const profile = devProfiles["my_account"];
+  if (profile) {
+    profile.daysSinceBoost = parseInt(days, 10);
+    const activeFee = calculateDecayedFee(profile);
+    res.json({ success: true, profile, currentFee: activeFee });
+  } else {
+    res.status(404).json({ success: false, error: "Profile not found" });
+  }
+});
+
+// Telemetry validation secret
+const TELEMETRY_SECRET = "catbox_daily_gold_secret";
+
+// Middleware/Helper for telemetry verification
+export function verifyTelemetryToken(token: string): boolean {
+  if (!token) return false;
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+
+  const calculateExpected = (dateStr: string) => {
+    return crypto.createHmac("sha256", TELEMETRY_SECRET).update(dateStr).digest("hex");
+  };
+
+  return token === calculateExpected(today) || 
+         token === calculateExpected(yesterday) || 
+         token === calculateExpected(tomorrow);
+}
+
+// 9. Dual-Executing Telemetry Verification Stream endpoint
+app.get("/api/atomic/stream", (req, res) => {
+  const token = (req.query.token as string) || (req.headers["x-catbox-telemetry-token"] as string) || "";
+  const isValid = verifyTelemetryToken(token);
+
+  const seedAds = [
+    { text: "NeoDeco-DB: Elegant geometric SQL schemas. Speed up Postgres by 10x.", link: "https://neodeco-db.io" },
+    { text: "Saffron-Host: Built by architects, loved by elite coders.", link: "https://saffron-host.net" },
+    { text: "Drizzle ORM: Strictly typed queries for high-performance apps.", link: "https://orm.drizzle.team" },
+    { text: "Sentry: Find exceptions before your customers do.", link: "https://sentry.io" },
+    { text: "Stripe-Escrow: Symmetric cryptographic payouts on click events.", link: "https://stripe.com" }
+  ];
+
+  const houseAd = {
+    text: "✶ Catbox Tip: Adding 'laconic' to your AI prompts dramatically reduces output wordiness, saving thousands of tokens, runtime, and brainpower per month ↗",
+    link: "https://ai.google.dev"
+  };
+
+  const profile = devProfiles["my_account"];
+  let adsPool = [...seedAds];
+
+  // Ad filtering preference logic (Omit Switch)
+  const omitTips = profile?.omitHouseTips === true;
+  if (!omitTips) {
+    adsPool.push(houseAd);
+  }
+
+  // Symmetrical Affiliate Prioritization Priority Logic
+  const userLinks = profile?.affiliateLinks || {};
+  const prioritizedAds: any[] = [];
+
+  if (userLinks.neon) {
+    const matched = adsPool.find(a => a.link.includes("neodeco-db.io"));
+    if (matched) {
+      prioritizedAds.push({ ...matched, link: userLinks.neon });
+    }
+  }
+
+  if (userLinks.supabase) {
+    const matched = adsPool.find(a => a.link.includes("saffron-host.net"));
+    if (matched) {
+      prioritizedAds.push({ ...matched, link: userLinks.supabase });
+    }
+  }
+
+  let selected = { text: "Catbox: Open kickbacks platform", link: "https://catbox-db.io" };
+  if (prioritizedAds.length > 0) {
+    selected = prioritizedAds[Math.floor(Math.random() * prioritizedAds.length)];
+  } else if (adsPool.length > 0) {
+    selected = adsPool[Math.floor(Math.random() * adsPool.length)];
+  }
+
+  if (isValid) {
+    // Calculate splits dynamically using decayed platform fee percent
+    const activePlatformFeePercent = calculateDecayedFee(profile);
+    const grossVal = 0.06; // standard gross payout per impression in VS Code Status Bar
+    const platformFee = parseFloat(((grossVal * activePlatformFeePercent) / 100).toFixed(4));
+    const devPayout = parseFloat((grossVal - platformFee).toFixed(4));
+
+    const desc = `[Legitimate Impression] VS Code extension ad display: "${selected.text}" (Signed telemetry validated)`;
+    const block = createBlock("AD_IMPRESSION", "my_account", devPayout, platformFee, activePlatformFeePercent, desc, "Catbox Atomic Engine");
+    ledger.push(block);
+
+    if (profile) {
+      profile.impressionCount += 1;
+      profile.balance = parseFloat((profile.balance + devPayout).toFixed(4));
+    }
+    console.log(`[Catbox Telemetry Server] Legitimate Impression verified and logged. Hash: ${block.hash}`);
+  } else {
+    console.warn("[Catbox Telemetry Server] Invalid or missing signed daily telemetry token. Blocking ledger logging!");
+  }
+
+  res.json({
+    success: true,
+    adMessage: selected.text,
+    creativeText: selected.text,
+    targetUrl: selected.link,
+    link: selected.link,
+    cpmEst: 0.28,
+    hashType: "SHA-256",
+    timestamp: new Date().toISOString(),
+    signedTelemetryVerified: isValid
+  });
+});
+
+app.post("/api/atomic/report-click", (req, res) => {
+  const { creativeText, url, clickedAt } = req.body;
+  console.log(`[Catbox Server Reporting] Ad click registered: "${creativeText}" -> ${url} at ${clickedAt}`);
+  
+  const profile = devProfiles["my_account"];
+  const activePlatformFeePercent = calculateDecayedFee(profile);
+  
+  const grossVal = 0.30; // standard gross clickthrough payout in CLI spins
+  const platformFee = parseFloat(((grossVal * activePlatformFeePercent) / 100).toFixed(4));
+  const devPayout = parseFloat((grossVal - platformFee).toFixed(4));
+
+  const desc = `Clicked: VS Code Extension sponsor "${creativeText}" -> ${url}`;
+  const block = createBlock("AD_CLICK", "my_account", devPayout, platformFee, activePlatformFeePercent, desc, "Catbox Atomic Engine");
+  ledger.push(block);
+
+  if (profile) {
+    profile.clickCount += 1;
+    profile.balance = parseFloat((profile.balance + devPayout).toFixed(4));
+  }
+
+  res.json({
+    success: true,
+    status: "ACKNOWLEDGED",
+    received: { creativeText, url, clickedAt }
+  });
 });
 
 // Start application server
 async function startServer() {
+  // Instantiate the Catbox core atomic system Engine
+  const atomicEngine = new CatboxAtomicEngine(() => devProfiles["my_account"]);
+  atomicEngine.startIsolatedServer(5176);
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -510,7 +772,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Cattbacks elegant server running on http://0.0.0.0:${PORT}`);
+    console.log(`Catbox elegant server running on http://0.0.0.0:${PORT}`);
   });
 }
 

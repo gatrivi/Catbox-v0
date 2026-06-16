@@ -1,0 +1,26 @@
+{
+  "name": "catbox-vscode",
+  "displayName": "Catbox Status Bar Streamer",
+  "description": "Custom high-frequency ad dispatching telemetry & VS Code extension sponsor panel.",
+  "version": "1.2.0",
+  "publisher": "Catbox",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./index.ts",
+  "contributes": {
+    "commands": [
+      {
+        "command": "catbox.openAd",
+        "title": "Catbox: Open Sponsor Asset",
+        "category": "Catbox"
+      }
+    ]
+  }
+}

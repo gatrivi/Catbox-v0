@@ -27,12 +27,18 @@ import {
   Share2
 } from "lucide-react";
 import { Block, DevProfile, AdProvider } from "./types";
+import stainedGlassCarrier from "./assets/images/stained_glass_carrier_1781572789207.jpg";
 
 export default function App() {
   // Pane Toggles (All panes can be hidden)
   const [showLeftPane, setShowLeftPane] = useState(true);
   const [showCenterPane, setShowCenterPane] = useState(true);
   const [showRightPane, setShowRightPane] = useState(true);
+
+  // Background Customization States for Stained Glass Themes
+  const [bgType, setBgType] = useState<"dark" | "roof" | "custom">("custom");
+  const [customBgUrl, setCustomBgUrl] = useState(stainedGlassCarrier);
+
 
   // Core profile & ledger states
   const [profile, setProfile] = useState<DevProfile>({
@@ -76,6 +82,81 @@ export default function App() {
   // Feedback states
   const [payoutStatus, setPayoutStatus] = useState<string>("");
   const [successToast, setSuccessToast] = useState<string | null>(null);
+
+  // Added Affiliate, Decaying Timer, and Omit Switch states
+  const [neonAffiliate, setNeonAffiliate] = useState("");
+  const [supabaseAffiliate, setSupabaseAffiliate] = useState("");
+  const [omitHouseTips, setOmitHouseTips] = useState(false);
+  const [simulatedDays, setSimulatedDays] = useState(90);
+
+  // Sync state parameters from profile query safely
+  useEffect(() => {
+    if (profile) {
+      if (profile.affiliateLinks) {
+        setNeonAffiliate(profile.affiliateLinks.neon || "https://neodeco-db.io");
+        setSupabaseAffiliate(profile.affiliateLinks.supabase || "https://saffron-host.net");
+      }
+      if (profile.omitHouseTips !== undefined) {
+        setOmitHouseTips(profile.omitHouseTips);
+      }
+      if (profile.daysSinceBoost !== undefined) {
+        setSimulatedDays(profile.daysSinceBoost);
+      }
+    }
+  }, [profile?.id, profile?.daysSinceBoost]);
+
+  const handleSaveAffiliateUrls = async () => {
+    try {
+      const res = await fetch("/api/developer/affiliate-links", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ neon: neonAffiliate, supabase: supabaseAffiliate }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast("Affiliate override anchors updated and prioritized.");
+        refreshAllData();
+      }
+    } catch (e) {
+      console.error("Error updating affiliate links", e);
+    }
+  };
+
+  const handleToggleHouseTips = async () => {
+    const nextVal = !omitHouseTips;
+    setOmitHouseTips(nextVal);
+    try {
+      const res = await fetch("/api/developer/omit-tips", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ omitHouseTips: nextVal }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast(nextVal ? "House wisdom pro-tips omitted from stream." : "House wisdom pro-tips enabled in rotation.");
+        refreshAllData();
+      }
+    } catch (e) {
+      console.error("Error toggling house tips", e);
+    }
+  };
+
+  const handleSimulateDecaySlider = async (days: number) => {
+    setSimulatedDays(days);
+    try {
+      const res = await fetch("/api/developer/simulate-decay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ days }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProfile(data.profile);
+      }
+    } catch (e) {
+      console.error("Error simulating decay", e);
+    }
+  };
 
   // Fetch current stats, ledger and providers from backend
   const refreshAllData = async () => {
@@ -321,8 +402,31 @@ export default function App() {
   const activePanesCount = (showLeftPane ? 1 : 0) + (showCenterPane ? 1 : 0) + (showRightPane ? 1 : 0);
 
   return (
-    <div className="min-h-screen bg-black text-zinc-100 flex flex-col font-sans selection:bg-gold-500 selection:text-black">
+    <div 
+      className="min-h-screen text-zinc-100 flex flex-col font-sans selection:bg-gold-500 selection:text-black relative transition-all duration-750"
+      style={{
+        backgroundColor: "#000000",
+        backgroundImage: bgType === "roof" 
+          ? `radial-gradient(circle at 50% 50%, rgba(10, 6, 2, 0.45), rgba(0, 0, 0, 0.95)), url("https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=1200&auto=format&fit=crop")`
+          : bgType === "custom" && customBgUrl
+            ? `radial-gradient(circle at 50% 50%, rgba(10, 6, 2, 0.40), rgba(0, 0, 0, 0.95)), url("${customBgUrl}")`
+            : "none",
+        backgroundSize: "cover",
+        backgroundPosition: "center 30%",
+        backgroundAttachment: "fixed"
+      }}
+    >
+      {/* Heavy textured leaded stained glass grid pattern overlay */}
+      {(bgType === "roof" || bgType === "custom") && (
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(194,147,52,0.14)_1.5px,transparent_1.5px),linear-gradient(90deg,rgba(194,147,52,0.14)_1.5px,transparent_1.5px)] bg-[size:42px_42px] pointer-events-none opacity-40 z-0"></div>
+      )}
+      {(bgType === "roof" || bgType === "custom") && (
+        <div className="absolute inset-0 bg-gradient-to-tr from-amber-950/20 via-transparent to-yellow-900/10 pointer-events-none z-0"></div>
+      )}
       
+      {/* Content layers */}
+      <div className="relative z-10 flex-col flex min-h-screen">
+
       {/* Visual Success Toast */}
       {successToast && (
         <div className="fixed bottom-12 right-12 bg-black text-gold-300 border-2 border-gold-400/80 px-6 py-4 rounded shadow-[0_0_15px_rgba(194,147,52,0.4)] flex items-center gap-3 z-50 animate-fade-in uppercase tracking-wider text-xs font-deco">
@@ -340,7 +444,7 @@ export default function App() {
           <div className="text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start gap-3">
               <span className="font-deco text-4xl font-extrabold tracking-widest text-gold-400 italic hover:text-gold-250 transition-colors cursor-pointer">
-                CATTBACKS
+                CATBOX
               </span>
               <div className="hidden sm:block border-l-2 border-gold-700 h-6"></div>
               <span className="font-serif italic text-gold-500/80 text-lg tracking-wide">
@@ -348,7 +452,7 @@ export default function App() {
               </span>
             </div>
             <p className="text-[10px] text-zinc-400 uppercase tracking-widest font-mono mt-1">
-              • An Open-Source Deco Alternative to kickbacks.ai featuring Transparent Splits & BYO Providers •
+              • An Open-Source Stained Glass Alternative to kickbacks.ai featuring Transparent Splits & BYO Providers •
             </p>
           </div>
 
@@ -424,6 +528,80 @@ export default function App() {
         </div>
       </section>
 
+      {/* Background Stained Glass Settings Strip */}
+      <section className="bg-zinc-950/90 border-b border-gold-900/40 px-8 py-3">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-gold-400 animate-pulse" />
+            <span className="text-[10px] uppercase font-mono tracking-widest text-gold-300">
+              Stained Glass Theme Backdrop:
+            </span>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => {
+                setBgType("custom");
+                setCustomBgUrl(stainedGlassCarrier);
+              }}
+              className={`px-3 py-1 text-[9px] font-mono rounded uppercase transition-all border cursor-pointer ${
+                bgType === "custom" && customBgUrl === stainedGlassCarrier
+                  ? "bg-gold-400 text-black border-gold-400 font-bold shadow-[0_0_8px_rgba(194,147,52,0.3)]"
+                  : "bg-black text-zinc-400 border-zinc-800 hover:text-white"
+              }`}
+            >
+              ⚓ Stained Glass Carrier (Attached Img)
+            </button>
+            <button
+              onClick={() => setBgType("roof")}
+              className={`px-3 py-1 text-[9px] font-mono rounded uppercase transition-all border cursor-pointer ${
+                bgType === "roof"
+                  ? "bg-gold-400 text-black border-gold-400 font-bold shadow-[0_0_8px_rgba(194,147,52,0.3)]"
+                  : "bg-black text-zinc-400 border-zinc-800 hover:text-white"
+              }`}
+            >
+              ☀️ Golden Hour Rooftop
+            </button>
+            <button
+              onClick={() => {
+                setBgType("custom");
+                if (customBgUrl === stainedGlassCarrier) {
+                  setCustomBgUrl("https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=1200&auto=format&fit=crop");
+                }
+              }}
+              className={`px-3 py-1 text-[9px] font-mono rounded uppercase transition-all border cursor-pointer ${
+                bgType === "custom" && customBgUrl !== stainedGlassCarrier
+                  ? "bg-gold-400 text-black border-gold-400 font-bold shadow-[0_0_8px_rgba(194,147,52,0.3)]"
+                  : "bg-black text-zinc-400 border-zinc-800 hover:text-white"
+              }`}
+            >
+              🖼️ Custom Background URL
+            </button>
+            <button
+              onClick={() => setBgType("dark")}
+              className={`px-3 py-1 text-[9px] font-mono rounded uppercase transition-all border cursor-pointer ${
+                bgType === "dark"
+                  ? "bg-gold-400 text-black border-gold-400 font-bold"
+                  : "bg-black text-zinc-400 border-zinc-800 hover:text-white"
+              }`}
+            >
+              🌑 Slate Midnight Canvas
+            </button>
+
+            {bgType === "custom" && (
+              <input
+                type="text"
+                value={customBgUrl}
+                onChange={(e) => setCustomBgUrl(e.target.value)}
+                placeholder="Paste any PNG/JPG image link..."
+                className="bg-black text-zinc-300 border border-gold-900/60 text-[9px] rounded px-2 py-1 focus:outline-none focus:border-gold-400 w-64 font-mono select-all"
+                title="Input any web image URL or path inside assets/ folder to instantly render it under the leaded stained-glass grid!"
+              />
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* Main Container - Collapsible Grid */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-12 gap-6 items-start">
         
@@ -492,7 +670,7 @@ export default function App() {
               </div>
 
               {/* Reward/Referral discount rates shown dynamically */}
-              {profile.platformFeePercent <= 10 && (
+              {profile.platformFeePercent <= 14 && (
                 <div className="p-2 border border-dashed border-gold-600 bg-gold-950/10 rounded-sm">
                   <div className="flex items-center gap-1.5 text-gold-400 text-[10px] uppercase font-bold">
                     <Sparkles className="w-3.5 h-3.5 animate-pulse text-gold-400" />
@@ -503,6 +681,158 @@ export default function App() {
                   </p>
                 </div>
               )}
+            </section>
+
+            {/* VIRAL STATE STATE MACHINE ENGINE */}
+            <section className="bg-zinc-950 p-4 border border-gold-800 rounded-sm relative space-y-4">
+              <div className="absolute top-0 right-4 w-12 h-1 bg-gold-500/60"></div>
+              <div>
+                <h3 className="font-deco text-xs text-gold-300 uppercase tracking-widest flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-gold-400" />
+                  Viral Growth Engine
+                </h3>
+                <p className="text-[10px] text-zinc-500 mt-1 leading-normal">
+                  Early-bird referral multiplier status. Instantly boost commissions and split ratios back to maximum using community logins.
+                </p>
+              </div>
+
+              <div className="p-3 bg-black border border-gold-950 rounded-sm space-y-2">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-zinc-500 font-mono">Tier Position:</span>
+                  <span className={`font-bold font-mono px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider ${
+                    profile.earlyBirdTier === "EARLY_BIRD_ELITE"
+                      ? "bg-gold-400 text-black shadow-[0_0_8px_#c29334]"
+                      : profile.earlyBirdTier === "GROWTH_BOOSTED"
+                        ? "bg-gold-950 text-gold-300 border border-gold-800"
+                        : "bg-zinc-900 text-zinc-400"
+                  }`}>
+                    {profile.earlyBirdTier || "STABLE_BASELINE"}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-zinc-500 font-mono">Invited Users:</span>
+                  <span className="text-white font-mono font-bold text-xs">{profile.referredUserCount || 0} devs</span>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-zinc-500 font-mono">Commission Rate:</span>
+                  <span className="text-gold-400 font-mono font-bold text-xs">
+                    {profile.platformFeePercent}% Platform Fee
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-zinc-500 font-mono">Decay Tracker:</span>
+                  <span className="text-zinc-400 font-mono text-xs font-semibold">{profile.daysSinceBoost !== undefined ? profile.daysSinceBoost : 90} days elapsed</span>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[9px] font-mono text-zinc-400 uppercase">
+                    <span>Simulate Time Decay</span>
+                    <span className="text-gold-400 font-bold">{simulatedDays}d elapsed</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="95"
+                    value={simulatedDays}
+                    onChange={(e) => handleSimulateDecaySlider(parseInt(e.target.value, 10))}
+                    className="w-full accent-gold-400 bg-zinc-900 border border-zinc-800 h-1.5 rounded-lg cursor-pointer"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSimulateReferral}
+                  id="btn-referrals-sidebar"
+                  className="w-full bg-gold-400 text-black hover:bg-gold-300 transition-all font-bold py-1.5 font-mono text-[10px] uppercase rounded-sm flex items-center justify-center gap-1.5 shadow-[0_0_8px_rgba(194,147,52,0.2)] cursor-pointer"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  Register Referral (+1)
+                </button>
+              </div>
+            </section>
+
+            {/* USER-SUBMITTED AFFILIATE LINKS */}
+            <section className="bg-zinc-950 p-4 border border-gold-800 rounded-sm relative space-y-4">
+              <div className="absolute top-0 right-4 w-12 h-1 bg-gold-500/60"></div>
+              <div>
+                <h3 className="font-deco text-xs text-gold-300 uppercase tracking-widest flex items-center gap-1.5">
+                  <ExternalLink className="w-3.5 h-3.5 text-gold-400" />
+                  Sponsor Affiliate Overrides
+                </h3>
+                <p className="text-[10px] text-zinc-500 mt-1 leading-normal">
+                  Configure tracking links for our seed platforms. When set, Catbox prioritizing rendering your link in CLI spins to capture 100% of generated conversions.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-mono uppercase tracking-wider text-zinc-400 flex items-center justify-between">
+                    <span>Neon (neodeco-db.io)</span>
+                    <span className="text-[8px] text-gold-550 lowercase">custom URL</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={neonAffiliate}
+                    onChange={(e) => setNeonAffiliate(e.target.value)}
+                    placeholder="https://neodeco-db.io/?ref=your_id"
+                    className="w-full bg-black border border-gold-900/60 rounded-sm px-3 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-gold-550 font-mono"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-mono uppercase tracking-wider text-zinc-400 flex items-center justify-between">
+                    <span>Supabase (saffron-host.net)</span>
+                    <span className="text-[8px] text-gold-550 lowercase">custom URL</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={supabaseAffiliate}
+                    onChange={(e) => setSupabaseAffiliate(e.target.value)}
+                    placeholder="https://saffron-host.net/?ref=your_id"
+                    className="w-full bg-black border border-gold-900/60 rounded-sm px-3 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-gold-550 font-mono"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveAffiliateUrls}
+                  id="save-affiliate-urls-btn"
+                  className="w-full bg-black border border-gold-700/60 text-gold-300 hover:bg-gold-950/20 hover:text-white transition-colors py-1.5 font-mono text-[10px] uppercase rounded-sm cursor-pointer"
+                >
+                  Save Override Settings
+                </button>
+              </div>
+            </section>
+
+            {/* HOUSE WISDOM TIPS PREFERENCE SWITCH */}
+            <section className="bg-zinc-950 p-4 border border-gold-800 rounded-sm relative">
+              <div className="absolute top-0 right-4 w-12 h-1 bg-zinc-600"></div>
+              <div className="flex items-center justify-between gap-3 text-left">
+                <div className="flex-1">
+                  <h3 className="font-deco text-xs text-zinc-300 uppercase tracking-widest">
+                    Omit House Tips
+                  </h3>
+                  <p className="text-[9px] text-zinc-500 mt-1 leading-normal">
+                    Filters out informational tips and optimization wisdom ("✶ Catbox Tip: ...") from terminal spins.
+                  </p>
+                </div>
+                <div>
+                  <button
+                    onClick={handleToggleHouseTips}
+                    id="toggle-omit-house-tips"
+                    className={`w-11 h-6 px-0.5 flex items-center rounded-full transition-colors cursor-pointer border ${
+                      omitHouseTips ? "bg-gold-600 border-gold-400 justify-end" : "bg-black border-zinc-800 justify-start"
+                    }`}
+                  >
+                    <span className={`w-4.5 h-4.5 rounded-full transition-transform ${
+                      omitHouseTips ? "bg-black" : "bg-zinc-600"
+                    }`} />
+                  </button>
+                </div>
+              </div>
             </section>
 
             {/* BRING YOUR OWN AD PROVIDER FORM */}
@@ -621,7 +951,7 @@ export default function App() {
                 Network Booster Share
               </h4>
               <p className="text-[10px] text-zinc-500 leading-normal">
-                By bringing new engineers onto Cattbacks, you permanently decrease the baseline cut down towards a 3% platform fee margin.
+                By bringing new engineers onto Catbox, you permanently decrease the baseline cut down towards a 3% platform fee margin.
               </p>
               <button
                 onClick={handleSimulateReferral}
@@ -685,7 +1015,7 @@ export default function App() {
               <div className="p-4 bg-zinc-950 border border-gold-800 rounded-sm relative flex flex-col justify-between">
                 <div className="absolute top-0 right-4 w-6 h-1 bg-gold-400"></div>
                 <div className="flex justify-between items-center text-zinc-400">
-                  <span className="text-[9px] font-mono uppercase tracking-wider">Cattbacks Balance</span>
+                  <span className="text-[9px] font-mono uppercase tracking-wider">Catbox Balance</span>
                   <Coins className="w-3.5 h-3.5 text-gold-400" />
                 </div>
                 <div className="mt-2 flex items-baseline gap-1">
@@ -759,7 +1089,7 @@ export default function App() {
                   </label>
                   <div className="bg-zinc-950 border border-zinc-90 w-full rounded-sm px-3 py-2 text-[11px] font-mono text-zinc-400 flex items-center justify-between">
                     <span>
-                      {cliFormat === "VS Code Status Bar" ? "vscode: statusLine.show(CATTBACK)" : "cli_$ cattbacks --render --json"}
+                      {cliFormat === "VS Code Status Bar" ? "vscode: statusLine.show(CATBOX_AD)" : "cli_$ catbox --render --json"}
                     </span>
                     <span className="text-[8px] px-1.5 py-0.5 bg-gold-950 text-gold-400 border border-gold-900 uppercase font-bold tracking-wider rounded">
                       ready
@@ -785,15 +1115,15 @@ export default function App() {
                       <div className="w-2.5 h-2.5 rounded-full bg-gold-600/60"></div>
                       <div className="w-2.5 h-2.5 rounded-full bg-zinc-900"></div>
                     </div>
-                    <span className="text-zinc-600 uppercase tracking-wider text-[9px]">Cattbacks Code Agent Simulator</span>
+                    <span className="text-zinc-600 uppercase tracking-wider text-[9px]">Catbox Code Agent Simulator</span>
                   </div>
 
                   <div className="space-y-1">
                     <p className="text-zinc-505">
-                      <span className="text-gold-500 font-semibold">[Cattbacks-Bin]</span> serving Customizable Wheel stream...
+                      <span className="text-gold-500 font-semibold">[Catbox-Bin]</span> serving Customizable Wheel stream...
                     </p>
                     <p className="text-zinc-400">
-                      <span className="text-zinc-550">$</span> curl -s {window.location.origin}/api/ad | grep "text"
+                      <span className="text-zinc-550">$</span> curl -s {window.location.origin}/api/atomic/stream | grep "message"
                     </p>
                   </div>
 
@@ -1081,10 +1411,10 @@ export default function App() {
       <footer className="border-t-4 border-double border-gold-600 bg-zinc-950 py-6 mt-auto">
         <div className="max-w-7xl mx-auto px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] font-mono text-zinc-500">
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 uppercase tracking-wider">
-            <span className="text-gold-500 font-bold">CATTBACKS MIT APLET LICENSE v1.1</span>
+            <span className="text-gold-500 font-bold">CATBOX MIT APPLET LICENSE v1.1</span>
             <span className="text-zinc-600">|</span>
             <a href="#github-sec" className="hover:text-gold-300 transition-colors flex items-center gap-1">
-              GITHUBREPOSITORY: CATTBACKS/CORE
+              GITHUB REPOSITORY: CATBOX/CORE
               <ExternalLink className="w-3 h-3 text-gold-500" />
             </a>
           </div>
@@ -1097,7 +1427,7 @@ export default function App() {
           </div>
         </div>
       </footer>
-
+      </div>
     </div>
   );
 }

@@ -31,4 +31,10 @@ export interface DevProfile {
   refBoostEnabled: boolean;
   adProviderCount: number;
   cattbackBalance: number; // accumulated cattbacks from sharing custom providers
+  affiliateLinks?: Record<string, string>;
+  referredUserCount?: number;
+  earlyBirdTier?: string;
+  daysSinceBoost?: number;
+  omitHouseTips?: boolean;
 }
+

@@ -28,6 +28,8 @@ import {
 } from "lucide-react";
 import { Block, DevProfile, AdProvider } from "./types";
 import stainedGlassCarrier from "./assets/images/stained_glass_carrier_1781572789207.jpg";
+import { telemetry } from "./utils/telemetryClient";
+
 
 export default function App() {
   // Client-Side light state router driven by window.location.hash
@@ -98,6 +100,17 @@ export default function App() {
   const [actionType, setActionType] = useState<"IMPRESSION" | "CLICK">("IMPRESSION");
   const [cliContext, setCliContext] = useState("geometric rust container");
   const [cliFormat, setCliFormat] = useState("VS Code Status Bar");
+
+  // Dynamic ad and interactive terminal state variables
+  const [activeAdMessage, setActiveAdMessage] = useState("Secure your routes elegantly with Aurum Auth. Get 20% off with promo code CATTBACKS");
+  const [cliInput, setCliInput] = useState("");
+  const [terminalLogs, setTerminalLogs] = useState<string[]>([
+    "Welcome to Catbox-CLI v1.4.0 (Open Kickbacks Protocol)",
+    "Type 'help' or 'catbox help' to view available commands.",
+    "Type 'gemini <prompt>' to ask the server-side Gemini intelligence to assist you.",
+    "Type 'catbox fetch' to generate/fetch a dynamic ad via Gemini.",
+    "----------------------------------------------------------------"
+  ]);
   
   // Custom Provider registration form
   const [newProvName, setNewProvName] = useState("");
@@ -133,7 +146,124 @@ export default function App() {
   const [customInstalls, setCustomInstalls] = useState(8);
   const [privacyPolicy, setPrivacyPolicy] = useState<{ compliance: string; guarantee: string; terms: string[]; exemptions: string } | null>(null);
 
+  // Idempotent Telemetry State variables
+  const [telemetryDbInfo, setTelemetryDbInfo] = useState<string>("Local High-Fidelity JSON Fallback Database");
+  const [telemetryStats, setTelemetryStats] = useState<any[]>([]);
+  const [telemetryLatest, setTelemetryLatest] = useState<any[]>([]);
+  const [localQueueSize, setLocalQueueSize] = useState<number>(0);
+  const [isWindowFocused, setIsWindowFocused] = useState<boolean>(true);
+  const [isSystemIdle, setIsSystemIdle] = useState<boolean>(false);
+
+  const fetchTelemetryStats = async () => {
+    try {
+      const res = await fetch("/api/telemetry/stats");
+      const data = await res.json();
+      if (data.success) {
+        setTelemetryDbInfo(data.database);
+        setTelemetryStats(data.stats || []);
+        setTelemetryLatest(data.latest || []);
+        setIsSystemIdle(data.idle || false);
+      }
+      setLocalQueueSize(telemetry.getQueueStats().size);
+    } catch (err) {
+      console.warn("Could not query telemetry stats:", err);
+    }
+  };
+
+  // Sync telemetry periodic stats
+  useEffect(() => {
+    fetchTelemetryStats();
+    const interval = setInterval(fetchTelemetryStats, 6000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Sync window focus state
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleFocus = () => setIsWindowFocused(true);
+    const handleBlur = () => setIsWindowFocused(false);
+
+    setIsWindowFocused(document.hasFocus());
+
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("blur", handleBlur);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("blur", handleBlur);
+    };
+  }, []);
+
+  // Automated tracking of Active Ad view telemetry lifecycles with 3-way view validation:
+  // - Minimum 5s visible (not 2s or 1s)
+  // - Window must be focused
+  // - User not AFK (idle detection on the server-side)
+  useEffect(() => {
+    if (!activeAdMessage) return;
+
+    const surfaceType: "statusbar" | "cli" | "spinner" = 
+      cliFormat === "VS Code Status Bar" 
+        ? "statusbar" 
+        : cliFormat === "CLI Prompt Footer" 
+        ? "cli" 
+        : "spinner";
+
+    const cleanAdId = activeAdMessage.slice(0, 30).trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
+
+    // 1. Core Event: impression_rendered tracking (immediate, unique event_id)
+    telemetry.trackEvent(
+      "impression_rendered",
+      cleanAdId,
+      "Carbon Deco Ads",
+      surfaceType
+    );
+
+    let viewSecondsElapsed = 0;
+    let viewableTracked = false;
+
+    // Tick every 1s to accumulate continuous focused active attention duration
+    const viewTimer = setInterval(() => {
+      const isCurrentlyValid = isWindowFocused && !isSystemIdle;
+
+      if (isCurrentlyValid) {
+        viewSecondsElapsed++;
+
+        // Minimum 5s focused, active, non-AFK attention required to count as viewable
+        if (viewSecondsElapsed >= 5 && !viewableTracked) {
+          viewableTracked = true;
+          telemetry.trackEvent(
+            "impression_viewable",
+            cleanAdId,
+            "Carbon Deco Ads",
+            surfaceType
+          );
+          console.log("[Telemetry Client] ✓ impression_viewable tracked (Ad was focused & non-AFK for 5s)");
+        }
+
+        // Send a view tick every 5 seconds of continuous valid active session visibility
+        if (viewSecondsElapsed % 5 === 0) {
+          telemetry.trackEvent(
+            "view_tick",
+            cleanAdId,
+            "Carbon Deco Ads",
+            surfaceType,
+            5000 // 5000ms duration increment
+          );
+          console.log("[Telemetry Client] ✓ view_tick tracked for continuous active visibility");
+        }
+      } else {
+        // Condition breached! Reset count to enforce CONTINUOUS focused active visibility
+        viewSecondsElapsed = 0;
+      }
+      setLocalQueueSize(telemetry.getQueueStats().size);
+    }, 1000);
+
+    return () => {
+      clearInterval(viewTimer);
+    };
+  }, [activeAdMessage, cliFormat, isWindowFocused, isSystemIdle]);
+
   // Sync state parameters from profile query safely
+
   useEffect(() => {
     if (profile) {
       if (profile.affiliateLinks) {
@@ -271,18 +401,228 @@ export default function App() {
       });
       const data = await res.json();
       if (data.success) {
+        setActiveAdMessage(data.adMessage);
+        
+        const cleanAdId = data.adMessage.slice(0, 30).trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
+        const surfaceType = cliFormat === "VS Code Status Bar" ? "statusbar" : cliFormat === "CLI Prompt Footer" ? "cli" : "spinner";
+
+        if (type === "CLICK") {
+          // Explicit click telemetry tracking
+          telemetry.trackEvent("click", cleanAdId, data.provider || "Carbon Deco Ads", surfaceType);
+        }
+
+        // Log to terminal emulator
+        const loggedText = `[EVENT] Simulated ${type === "CLICK" ? "Click" : "Impression"}: "${data.adMessage}" (${data.provider}). Earned: $${data.devPayout.toFixed(4)}`;
+        const telemetryLog = `[Telemetry Queue] Logged ${type === "CLICK" ? "Click" : "Impression"} event (Active Queue size: ${telemetry.getQueueStats().size}/50)`;
+        setTerminalLogs(prev => [...prev, loggedText, telemetryLog]);
+
         triggerToast(
           type === "CLICK"
             ? `Ad click tracked! Earned $${data.devPayout.toFixed(4)} with ${100 - data.platformFeePercent}% user split!`
             : `Ad impression served! Recorded with SHA-256 block ledger transparency`
         );
         refreshAllData();
+        fetchTelemetryStats();
       }
     } catch (err) {
       console.error(err);
     } finally {
       setLoadingAd(false);
     }
+  };
+
+
+  // Process and execute custom interactive CLI commands (e.g. catbox balance, gemini, etc.)
+  const handleExecuteCliCommand = async (e: FormEvent) => {
+    e.preventDefault();
+    const command = cliInput.trim();
+    if (!command) return;
+
+    // Echo command
+    setTerminalLogs(prev => [...prev, `cli_$ ${command}`]);
+    setCliInput("");
+
+    const parts = command.split(" ");
+    const primaryCmd = parts[0].toLowerCase();
+
+    if (primaryCmd === "clear") {
+      setTerminalLogs([]);
+      return;
+    }
+
+    if (primaryCmd === "help" || (primaryCmd === "catbox" && parts[1]?.toLowerCase() === "help")) {
+      setTerminalLogs(prev => [
+        ...prev,
+        "Available commands:",
+        "  help                    Display this list of supported CLI commands.",
+        "  catbox balance          Retrieve your active balance, payouts, and CTR metrics.",
+        "  catbox fetch <context>  Trigger dynamic ad delivery with custom category context.",
+        "  catbox telemetry        Query real-time ID-based deduplication logs and queue stats.",
+        "  catbox telemetry flush  Force immediate delivery of cached ad events.",
+        "  catbox termux           Show automated setup instructions for Android Termux.",
+        "  gemini <query>          Ask Gemini CLI Agent for ad ideas or technical recommendations.",
+        "  clear                   Clear the terminal log screen."
+      ]);
+      return;
+    }
+
+
+    if (primaryCmd === "catbox") {
+      const sub = parts[1]?.toLowerCase();
+      if (sub === "balance") {
+        setTerminalLogs(prev => [
+          ...prev,
+          `--- Catbox Profile Ledger ---`,
+          `  Account ID:      my_account`,
+          `  Balance:         $${profile.balance.toFixed(4)} USD`,
+          `  Royalty Balance: $${profile.cattbackBalance.toFixed(4)} USD`,
+          `  Impressions:     ${profile.impressionCount}`,
+          `  Clicks:          ${profile.clickCount}`,
+          `  Platform Split:  ${profile.platformFeePercent}%`,
+          `-----------------------------`
+        ]);
+        return;
+      }
+
+      if (sub === "fetch") {
+        const adContext = parts.slice(2).join(" ") || cliContext || "geometric development";
+        setTerminalLogs(prev => [...prev, `>> Requesting Gemini to synthesize dynamic ad block matching: "${adContext}"...`]);
+        setLoadingAd(true);
+        try {
+          const res = await fetch("/api/ad/fetch", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              developerId: "my_account",
+              context: adContext,
+              format: "CLI Prompt Footer",
+              actionType: "IMPRESSION",
+            }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            setActiveAdMessage(data.adMessage);
+            setTerminalLogs(prev => [
+              ...prev,
+              `[SUCCESS] Ad simulated successfully!`,
+              `Ad Slogan:  "${data.adMessage}"`,
+              `Provider:   ${data.provider}`,
+              `Payout:     +$${data.devPayout.toFixed(4)} USD (gross: $${data.grossAdRevenue.toFixed(4)})`,
+              `Ledger:     SHA-256 block registered: ${data.blockHash.substring(0, 16)}...`
+            ]);
+            refreshAllData();
+          } else {
+            setTerminalLogs(prev => [...prev, `[ERROR] Failed to fetch ad: ${data.error}`]);
+          }
+        } catch (err: any) {
+          setTerminalLogs(prev => [...prev, `[ERROR] Connection failed: ${err.message}`]);
+        } finally {
+          setLoadingAd(false);
+        }
+        return;
+      }
+
+      if (sub === "telemetry") {
+        const action = parts[2]?.toLowerCase();
+        if (action === "flush") {
+          setTerminalLogs(prev => [...prev, `[Telemetry Action] Manual flush of client batch database requested...`]);
+          const success = await telemetry.flush();
+          setTerminalLogs(prev => [
+            ...prev,
+            success 
+              ? `[SUCCESS] Client batch queue transmitted successfully! Checked for Redis/Postgres ID duplication.`
+              : `[Telemetry Info] Queue is currently quiet (0 items or offline/pending timeout).`
+          ]);
+          fetchTelemetryStats();
+          return;
+        }
+
+        const queueStats = telemetry.getQueueStats();
+        setTerminalLogs(prev => [
+          ...prev,
+          `--- Catbox Idempotent Telemetry Engine ---`,
+          `  Backend Database: ${telemetryDbInfo}`,
+          `  Local Queue:     ${queueStats.size} / 50 events cached`,
+          `  Transmission:    Automated batch (every 30s) or on Exit`,
+          `  Failed Retries:  ${queueStats.retryCount}`,
+          `-------------------------------------------`,
+          `  Type "catbox telemetry flush" to manually flush.`
+        ]);
+        return;
+      }
+
+      if (sub === "termux") {
+
+        const installUrl = `${window.location.origin}/api/termux/install`;
+        setTerminalLogs(prev => [
+          ...prev,
+          `--- Catbox Android Termux Setup ---`,
+          `Run this single-line bootstrap command inside Termux:`,
+          `  pkg install curl -y && curl -sL ${installUrl} | bash`,
+          `----------------------------------`,
+          `Features supported in Termux:`,
+          `  - Automated binary command: 'catbox'`,
+          `  - Prompt Injection of peer impressions passive earnings`,
+          `  - Colored ANSI display output directly in terminal shell`
+        ]);
+        return;
+      }
+
+      setTerminalLogs(prev => [...prev, `[Catbox CLI] Unknown subcommand '${parts[1] || ""}'. Type 'help' for guide.`]);
+      return;
+    }
+
+    if (primaryCmd === "termux") {
+      const installUrl = `${window.location.origin}/api/termux/install`;
+      setTerminalLogs(prev => [
+        ...prev,
+        `--- Catbox Android Termux Setup ---`,
+        `Run this single-line bootstrap command inside Termux:`,
+        `  pkg install curl -y && curl -sL ${installUrl} | bash`,
+        `----------------------------------`,
+        `Features' support built in:`,
+        `  - Automated binary command: 'catbox'`,
+        `  - Prompt Injection of peer impressions passive earnings`,
+        `  - Colored ANSI display output directly in terminal shell`
+      ]);
+      return;
+    }
+
+    if (primaryCmd === "gemini") {
+      const promptText = parts.slice(1).join(" ");
+      if (!promptText) {
+        setTerminalLogs(prev => [...prev, `[Gemini CLI] Please specify a prompt. Example: 'gemini suggestion for security ad'`]);
+        return;
+      }
+
+      setTerminalLogs(prev => [...prev, `>> Invoking server-side Gemini API on model 'gemini-3.5-flash'...`]);
+      setLoadingAd(true);
+      try {
+        const res = await fetch("/api/gemini/cli", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: promptText }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setTerminalLogs(prev => [
+            ...prev,
+            `--- Gemini CLI Response ---`,
+            data.text,
+            `---------------------------`
+          ]);
+        } else {
+          setTerminalLogs(prev => [...prev, `[Gemini CLI Error] ${data.error}`]);
+        }
+      } catch (err: any) {
+        setTerminalLogs(prev => [...prev, `[Gemini Connect Error] ${err.message}`]);
+      } finally {
+        setLoadingAd(false);
+      }
+      return;
+    }
+
+    setTerminalLogs(prev => [...prev, `bash: command not found: ${primaryCmd}. Did you try typing 'help'?`]);
   };
 
   // Self-Serve Sponsor Promotion campaign submit handlers
@@ -1455,7 +1795,7 @@ export default function App() {
                 </div>
 
                 {/* Display Output Surface Toggles */}
-                <div className="flex gap-1.5">
+                <div className="flex gap-1.5 flex-wrap">
                   <button
                     onClick={() => setCliFormat("VS Code Status Bar")}
                     className={`px-3 py-1 text-[10px] font-mono rounded uppercase transition-all border ${
@@ -1475,6 +1815,16 @@ export default function App() {
                     }`}
                   >
                     cli string prompt
+                  </button>
+                  <button
+                    onClick={() => setCliFormat("Termux Shell Integration")}
+                    className={`px-3 py-1 text-[10px] font-mono rounded uppercase transition-all border ${
+                      cliFormat === "Termux Shell Integration"
+                        ? "bg-gold-550 text-black border-gold-400 font-bold"
+                        : "bg-black text-zinc-400 border-zinc-800 hover:text-white"
+                    }`}
+                  >
+                    termux prompt setup
                   </button>
                 </div>
               </div>
@@ -1501,24 +1851,37 @@ export default function App() {
                   <label className="text-[9px] font-mono text-zinc-400 uppercase tracking-widest">
                     Code CLI command block
                   </label>
-                  <div className="bg-zinc-950 border border-zinc-90 w-full rounded-sm px-3 py-2 text-[11px] font-mono text-zinc-400 flex items-center justify-between">
-                    <span>
-                      {cliFormat === "VS Code Status Bar" ? "vscode: statusLine.show(CATBOX_AD)" : "cli_$ catbox --render --json"}
+                  <div className="bg-zinc-950 border border-zinc-90 w-full rounded-sm px-3 py-2 text-[11px] font-mono text-zinc-450 flex items-center justify-between">
+                    <span className="truncate select-all pr-1 text-[10.5px]">
+                      {cliFormat === "VS Code Status Bar" 
+                        ? "vscode: statusLine.show(CATBOX_AD)" 
+                        : cliFormat === "CLI Prompt Footer"
+                        ? "cli_$ catbox --render --json"
+                        : `pkg install curl -y && curl -sL ${window.location.origin || "http://localhost:3000"}/api/termux/install | bash`}
                     </span>
-                    <span className="text-[8px] px-1.5 py-0.5 bg-gold-950 text-gold-400 border border-gold-900 uppercase font-bold tracking-wider rounded">
+                    <span className="text-[8px] px-1.5 py-0.5 bg-gold-950 text-gold-400 border border-gold-900 uppercase font-bold tracking-wider rounded shrink-0">
                       ready
                     </span>
                   </div>
-                  <span className="text-[9px] text-gold-600 font-mono block">Custom string targets match local output</span>
+                  <span className="text-[9px] text-gold-600 font-mono block">
+                    {cliFormat === "Termux Shell Integration"
+                      ? "Run this bootstrap command inside Termux on Android"
+                      : "Custom string targets match local output"}
+                  </span>
                 </div>
 
               </div>
 
               {/* VS Code Output terminal emulator */}
               <div className="space-y-2">
-                <label className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest block">
-                  Simulated Code Environment output window
-                </label>
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest block">
+                    Simulated Code Environment output window
+                  </label>
+                  <span className="text-[9.5px] text-zinc-600 font-mono">
+                    Mode: Interactive Shell
+                  </span>
+                </div>
 
                 {/* Symmetrical golden double-line terminal box */}
                 <div className="bg-black border-2 border-gold-700/60 rounded-sm p-5 font-mono text-xs text-zinc-300 shadow-inner relative space-y-3.5">
@@ -1529,29 +1892,49 @@ export default function App() {
                       <div className="w-2.5 h-2.5 rounded-full bg-gold-600/60"></div>
                       <div className="w-2.5 h-2.5 rounded-full bg-zinc-900"></div>
                     </div>
-                    <span className="text-zinc-600 uppercase tracking-wider text-[9px]">Catbox Code Agent Simulator</span>
+                    <span className="text-zinc-600 uppercase tracking-wider text-[9px] font-bold">Catbox Code Agent Simulator v1.4</span>
                   </div>
 
-                  <div className="space-y-1">
-                    <p className="text-zinc-505">
-                      <span className="text-gold-500 font-semibold">[Catbox-Bin]</span> serving Customizable Wheel stream...
-                    </p>
-                    <p className="text-zinc-400">
-                      <span className="text-zinc-550">$</span> curl -s {window.location.origin}/api/atomic/stream | grep "message"
-                    </p>
+                  {/* Scrollable logs of historical commands, actions and Gemini CLI outputs */}
+                  <div className="max-h-56 overflow-y-auto space-y-1.5 border-b border-zinc-900 pb-3 text-[11px] text-zinc-400 font-mono scrollbar-thin scrollbar-thumb-zinc-805">
+                    {terminalLogs.map((log, index) => {
+                      if (log.startsWith("cli_$")) {
+                        return (
+                          <p key={index} className="text-zinc-300">
+                            <span className="text-gold-500 font-bold">$</span> {log.replace("cli_$", "").trim()}
+                          </p>
+                        );
+                      }
+                      if (log.includes("[ERROR]") || log.includes("[Gemini CLI Error]") || log.includes("[Gemini Connect Error]") || log.includes("Error")) {
+                        return <p key={index} className="text-red-400 font-semibold">{log}</p>;
+                      }
+                      if (log.includes("[SUCCESS]") || log.includes("[EVENT]")) {
+                        return <p key={index} className="text-emerald-400 font-medium">{log}</p>;
+                      }
+                      if (log.includes("--- Gemini CLI Response ---") || log.includes("--- Catbox Profile Ledger ---")) {
+                        return <p key={index} className="text-gold-400 font-bold mt-2">{log}</p>;
+                      }
+                      return <p key={index} className="leading-relaxed whitespace-pre-wrap">{log}</p>;
+                    })}
                   </div>
 
                   {/* Active Simulator Display message panel */}
                   <div className="border border-gold-900 bg-zinc-950/90 p-4 rounded-sm space-y-3 relative hover:border-gold-500 transition-all">
                     
                     <div className="flex items-center justify-between text-[9px] text-zinc-450 font-mono border-b border-zinc-900 pb-2">
-                      <span className="text-gold-400 font-bold uppercase tracking-widest">ACTIVE VSCODE STATUS AD STRING</span>
+                      <span className="text-gold-400 font-bold uppercase tracking-widest text-[9.5px]">
+                        {cliFormat === "VS Code Status Bar" 
+                          ? "ACTIVE VSCODE STATUS AD STRING" 
+                          : cliFormat === "CLI Prompt Footer" 
+                          ? "ACTIVE CLI PROMPT STRING" 
+                          : "ACTIVE TERMUX AD BANNER STRING"}
+                      </span>
                       <span className="px-1 bg-gold-950 text-gold-400 rounded text-[9px] font-mono border border-gold-900 italic">GENRE: {cliContext || "general"}</span>
                     </div>
 
                     <div className="py-2">
                       <p className="text-gold-300 font-deco text-sm font-semibold tracking-wide italic">
-                        "Secure your routes elegantly with Aurum Auth. Get 20% off with promo code CATTBACKS"
+                        "{activeAdMessage}"
                       </p>
                     </div>
 
@@ -1561,9 +1944,23 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="text-zinc-600 text-[10px] italic">
-                    &gt;&gt; Live events generate automated blockchain ledger verification hash in real-time.
-                  </div>
+                  {/* Interactive Terminal Command Input Row */}
+                  <form onSubmit={handleExecuteCliCommand} className="flex items-center gap-2 pt-1">
+                    <span className="text-gold-400 font-mono font-bold text-xs select-none">cli_$</span>
+                    <input
+                      type="text"
+                      value={cliInput}
+                      onChange={(e) => setCliInput(e.target.value)}
+                      placeholder="Type commands (e.g. 'help', 'gemini design security slogan', 'catbox balance')"
+                      className="flex-1 bg-transparent border-none text-zinc-200 text-xs font-mono focus:outline-none focus:ring-0 placeholder-zinc-700"
+                    />
+                    <button
+                      type="submit"
+                      className="px-3 py-1 bg-gold-950 hover:bg-gold-900 text-gold-400 hover:text-gold-300 border border-gold-900 hover:border-gold-500 font-mono text-[10px] uppercase font-bold rounded-sm transition-all"
+                    >
+                      Exec
+                    </button>
+                  </form>
 
                 </div>
               </div>
@@ -1807,7 +2204,227 @@ export default function App() {
 
             </section>
 
+            {/* 🛡️ IDEMPOTENT TELEMETRY PIPELINE VIEW */}
+            <section className="col-span-1 md:col-span-2 bg-gradient-to-b from-zinc-950 to-black p-5 border border-gold-900 rounded-sm space-y-6 relative overflow-hidden">
+              <div className="absolute top-0 right-10 w-32 h-[1px] bg-gold-400"></div>
+              
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-zinc-900 pb-3">
+                <div>
+                  <span className="text-[9px] font-mono text-gold-500 uppercase tracking-widest block">
+                    Telemetry Ingestion Pipeline
+                  </span>
+                  <h3 className="font-deco text-sm font-bold text-gold-300 uppercase tracking-widest mt-0.5">
+                    Idempotent Event Log (PostgreSQL + Redis Stack)
+                  </h3>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-[9.5px] font-mono px-2 py-0.5 bg-black border border-zinc-800 text-zinc-400 rounded flex items-center gap-1.5 label-storage">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    {telemetryDbInfo}
+                  </span>
+                  <button
+                    onClick={async () => {
+                      await telemetry.flush();
+                      fetchTelemetryStats();
+                    }}
+                    className="px-3 py-1 bg-gold-950 hover:bg-gold-900 text-gold-400 hover:text-gold-300 border border-gold-900 hover:border-gold-500 font-mono text-[9.5px] uppercase font-bold rounded-sm transition-all"
+                  >
+                    Force Flush Queue
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                {/* Visual Pipeline Meters / Stats */}
+                <div className="lg:col-span-12 xl:col-span-5 space-y-5">
+                  <div className="bg-black/40 border border-zinc-900 p-4 rounded-sm space-y-4">
+                    <h4 className="font-mono text-[10px] text-gold-400 uppercase tracking-wider">
+                      Client-Side Queue Status
+                    </h4>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-[11px] font-mono text-zinc-400">
+                        <span>Batch Buffer Size</span>
+                        <span className="font-bold text-gold-400">{localQueueSize} / 50 events</span>
+                      </div>
+                      <div className="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden">
+                        <div 
+                          className="bg-gold-500 h-full transition-all duration-300"
+                          style={{ width: `${Math.min(100, (localQueueSize / 50) * 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div className="bg-zinc-950 p-2.5 border border-zinc-900 rounded-sm">
+                        <span className="block text-[8px] font-mono text-zinc-500 uppercase">Buffer State</span>
+                        <span className="text-[10.5px] font-mono font-bold text-zinc-300">
+                          {localQueueSize >= 40 ? "FLUSH_PENDING" : "BUFFER_INGEST"}
+                        </span>
+                      </div>
+                      <div className="bg-zinc-950 p-2.5 border border-zinc-900 rounded-sm">
+                        <span className="block text-[8px] font-mono text-zinc-500 uppercase">Transmit Cycle</span>
+                        <span className="text-[10.5px] font-mono font-bold text-gold-500">
+                          30s Auto Interval
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-zinc-900/55 pt-3 space-y-2.5">
+                      <h5 className="font-mono text-[9px] text-zinc-400 uppercase tracking-widest">
+                        3-Way View Validation Indicators
+                      </h5>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="bg-zinc-950/80 p-2 border border-zinc-900 rounded-sm text-center">
+                          <span className="block text-[7.5px] font-mono text-zinc-500 uppercase">Focus State</span>
+                          <span className={`text-[10px] font-mono font-bold ${isWindowFocused ? "text-emerald-500" : "text-rose-500"}`}>
+                            {isWindowFocused ? "● FOCUSED" : "○ BLURRED"}
+                          </span>
+                        </div>
+                        <div className="bg-zinc-950/80 p-2 border border-zinc-900 rounded-sm text-center">
+                          <span className="block text-[7.5px] font-mono text-zinc-500 uppercase">User Status</span>
+                          <span className={`text-[10px] font-mono font-bold ${isSystemIdle ? "text-amber-500" : "text-emerald-500"}`}>
+                            {isSystemIdle ? "● AFK/IDLE" : "○ ACTIVE"}
+                          </span>
+                        </div>
+                        <div className="bg-zinc-950/80 p-2 border border-zinc-900 rounded-sm text-center">
+                          <span className="block text-[7.5px] font-mono text-zinc-500 uppercase">Ad Ingestion</span>
+                          <span className={`text-[10px] font-mono font-bold ${isSystemIdle ? "text-rose-500/80" : "text-emerald-500"}`}>
+                            {isSystemIdle ? "STOPPED" : "COUNTING"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="pt-1.5 flex flex-col gap-2">
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await fetch("/api/telemetry/touch", { method: "POST" });
+                              const data = await res.json();
+                              if (data.success) {
+                                triggerToast("Injected file write activity! transcript.json touched.");
+                                fetchTelemetryStats();
+                              }
+                            } catch (e) {
+                              console.error(e);
+                            }
+                          }}
+                          className="w-full py-1.5 bg-zinc-900 hover:bg-zinc-850 text-gold-400 hover:text-gold-300 border border-zinc-800 hover:border-gold-800 font-mono text-[9px] uppercase font-bold rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <span className="w-1.5 h-1.5 bg-gold-400 rounded-full animate-ping"></span>
+                          Simulate Claude Activity (Touch Path mtime)
+                        </button>
+                        <p className="text-[8px] font-mono text-zinc-500 text-center leading-normal">
+                          Touches <code className="text-zinc-400 font-semibold select-all">~/.claude/transcript.json</code>. No file change for 90s triggers idle=true, automatically pausing ad counting.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-black /40 border border-zinc-900 p-4 rounded-sm space-y-4">
+                    <h4 className="font-mono text-[10px] text-gold-400 uppercase tracking-wider flex justify-between items-center">
+                      <span>Server-Side Deduplicated Analytics</span>
+                      <button 
+                        onClick={fetchTelemetryStats}
+                        className="text-[8px] text-zinc-500 hover:text-gold-400 uppercase select-none font-mono flex items-center gap-1"
+                      >
+                        <RefreshCw className="w-2.5 h-2.5 animate-spin" style={{ animationDuration: "6s" }} /> Refresh
+                      </button>
+                    </h4>
+
+                    {telemetryStats.length === 0 ? (
+                      <p className="text-[10.5px] font-mono text-zinc-650 italic">No events processed yet. Try triggering some simulated ads!</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {telemetryStats.map((item, idx) => {
+                          const surfaceLabel = 
+                            item.surface === "statusbar" 
+                              ? "VS Code Bar" 
+                              : item.surface === "cli" 
+                              ? "CLI Daemon" 
+                              : "Large Banner";
+                          
+                          return (
+                            <div key={idx} className="space-y-1">
+                              <div className="flex justify-between items-center text-[10.5px] font-mono">
+                                <span className="text-zinc-400">{surfaceLabel}</span>
+                                <span className="text-gold-400 font-bold">{item.count} events</span>
+                              </div>
+                              <div className="flex justify-between text-[8px] font-mono text-zinc-550 border-b border-zinc-900/50 pb-1">
+                                <span>AVG VIEW TIME: {parseFloat(item.avg_duration).toFixed(0)} ms</span>
+                                <span>Idempotent Checked</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-3 bg-gold-950/10 border border-gold-900/40 rounded-sm font-mono text-[9px] text-zinc-450 leading-normal space-y-1">
+                    <p className="font-semibold text-gold-400 uppercase tracking-wide text-[9.5px]">🛡️ Redis 24h Deduplication SLA</p>
+                    <p>Ad telemetry provides real-time deduplication via distributed lock keys. Repeated execution UUIDs are silently and instantaneously dropped by the ingestion server, guaranteeing clean, ad-fraud-free, CTR metrics reports.</p>
+                  </div>
+                </div>
+
+                {/* Real-time Streaming Deduplicated Feed */}
+                <div className="lg:col-span-12 xl:col-span-7 bg-zinc-950 p-4 border border-zinc-900 rounded-sm flex flex-col justify-between max-h-[420px]">
+                  <div>
+                    <div className="flex justify-between items-center border-b border-zinc-900 pb-2 mb-3">
+                      <span className="font-mono text-[10px] text-gold-400 uppercase tracking-widest">
+                        Ingested Active Stream
+                      </span>
+                      <span className="text-[8.5px] font-mono px-1.5 py-0.5 bg-gold-950 text-gold-400 rounded-sm">
+                        SLOTS: UNIQUE EVENT_IDS ONLY
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 overflow-y-auto max-h-[310px] pr-1 scrollbar-thin">
+                      {telemetryLatest.length === 0 ? (
+                        <div className="py-12 text-center text-zinc-655 font-mono text-[11px] italic">
+                          No events in stream yet. Run a simulated action inside the dashboard to ingest live telemetry!
+                        </div>
+                      ) : (
+                        telemetryLatest.map((item, idx) => (
+                          <div 
+                            key={idx} 
+                            className="bg-black/50 p-2.5 border border-zinc-900 rounded-sm text-[10.5px] font-mono relative overflow-hidden group hover:border-zinc-800 transition-all"
+                          >
+                            <div className="flex justify-between items-start text-[9px] text-zinc-550 mb-1 border-b border-zinc-950 pb-1">
+                              <span className="text-zinc-400 select-all font-semibold uppercase">{item.type}</span>
+                              <span>{new Date(item.timestamp).toLocaleTimeString()}</span>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-[10px] text-zinc-300 italic truncate">
+                                Ad ID: <span className="text-gold-300 font-bold not-italic">{item.ad_id}</span>
+                              </p>
+                              <div className="flex justify-between text-[8.5px] text-zinc-500">
+                                <span className="truncate max-w-[170px]" title={item.event_id}>
+                                  UUIDv4: {item.event_id.substring(0, 18)}...
+                                </span>
+                                <span className="text-gold-400">Duration: {item.visible_duration_ms} ms</span>
+                              </div>
+                            </div>
+                            <div className="absolute right-2 top-1 opacity-0 group-hover:opacity-100 transition-opacity text-[8px] text-emerald-500 uppercase tracking-widest">
+                              ✓ unique verified
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="text-[8.5px] text-zinc-550 font-mono text-center pt-2.5 border-t border-zinc-900 mt-2">
+                    Verified through persistent storage on PostgreSQL metadata ledger.
+                  </div>
+                </div>
+
+              </div>
+            </section>
+
           </aside>
+
         )}
 
         {/* 🛡️ ROUTE 5: Sovereign Privacy Policy */}

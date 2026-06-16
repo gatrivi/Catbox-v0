@@ -7,6 +7,21 @@ import { GoogleGenAI } from "@google/genai";
 import { CatboxAtomicEngine } from "./src/utils/atomicEngine";
 import { injectCatboxVerbs } from "./src/utils/claudeInterceptor";
 import fs from "fs/promises";
+import {
+  initializeTelemetryStore,
+  checkAndMarkDuplicate,
+  saveTelemetryEvents,
+  getTelemetryStats,
+  TelemetryEvent
+} from "./src/server/telemetryDb";
+import {
+  initializeIdleDetector,
+  getSystemIdleState,
+  markAdRendered,
+  simulateActivity,
+  getIdleDetectorDetails
+} from "./src/server/idleDetector";
+
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
@@ -638,6 +653,28 @@ Infuse a sophisticated, classic, or slightly humorous tone. Do NOT use quotes or
       adMessage = DecoBackupAds[Math.floor(Math.random() * DecoBackupAds.length)];
     }
 
+    markAdRendered(adMessage);
+
+    const isSystemCurrentlyIdle = getSystemIdleState();
+
+    if (isSystemCurrentlyIdle && actionType === "IMPRESSION") {
+      console.log(`[Ad Fetch Route] System is IDLE. Serving ad but skipping counting/ledgering!`);
+      return res.json({
+        success: true,
+        adMessage,
+        provider: selectedProviderName,
+        actionType,
+        grossAdRevenue: 0,
+        devPayout: 0,
+        platformFee: 0,
+        platformFeePercent: profile.platformFeePercent,
+        isAiGenerated,
+        newBalance: profile.balance,
+        blockHash: "SKIPPED_DUE_TO_IDLE",
+        idleSkipped: true
+      });
+    }
+
     const activePlatformFeePercent = calculateDecayedFee(profile);
     const grossAdRevenue = parseFloat((bidRate * (1 + Math.random() * 0.35)).toFixed(3));
     const platformFee = parseFloat(((grossAdRevenue * activePlatformFeePercent) / 100).toFixed(4));
@@ -696,6 +733,47 @@ Infuse a sophisticated, classic, or slightly humorous tone. Do NOT use quotes or
       isAiGenerated,
       newBalance: profile.balance,
       blockHash: block.hash,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 6.5. Gemini CLI Assistant Controller
+app.post("/api/gemini/cli", async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt) {
+      return res.status(400).json({ success: false, error: "Missing prompt or CLI command" });
+    }
+
+    let resultText = "";
+    const ai = getGenAI();
+    if (ai) {
+      try {
+        const response = await ai.models.generateContent({
+          model: "gemini-3.5-flash",
+          contents: `You are the Catbox Gemini CLI Agent. The user entered this prompt in a developer developer tool terminal: "${prompt}". Give a very specific, helpful response suited for a monospaced terminal window. Keep it extremely high-quality, professional, and readable. Limit output to 10 lines max. Do not use markdown backticks unless illustrating code blocks.`,
+          config: {
+            temperature: 0.70,
+          },
+        });
+        if (response && response.text) {
+          resultText = response.text.trim();
+        }
+      } catch (err: any) {
+        console.warn("Gemini CLI API error:", err);
+        resultText = `[Gemini CLI Service Error] ${err.message || err}`;
+      }
+    }
+
+    if (!resultText) {
+      resultText = `[Gemini Offline] Secure key not active. To enable live Gemini AI CLI, add GEMINI_API_KEY inside Settings > Secrets.`;
+    }
+
+    res.json({
+      success: true,
+      text: resultText,
     });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -1059,56 +1137,62 @@ app.get("/api/atomic/stream", async (req, res) => {
     }
 
     if (isValid) {
-      const isSelfServe = selected.isSelfServe === true;
-      const currentInstalls = profile?.installsCount || 8;
+      markAdRendered(selected.text);
       
-      const splitResult = CatboxAtomicEngine.calculateMilestoneSplit(currentInstalls);
-      const activePlatformFeePercent = isSelfServe ? 0 : splitResult.platformPercent;
-      
-      const grossVal = 0.06;
-      
-      if (isSelfServe) {
-        const viewCost = grossVal;
-        const platformFee = 0.0;
-        
-        const desc = `[Self-Serve Promo] Impression served for custom creative: "${selected.text}" (0% Platform Fee penalty)`;
-        await store.appendBlock({
-          type: "AD_IMPRESSION",
-          developerId: "my_account",
-          amount: -viewCost,
-          platformCut: platformFee,
-          platformPercent: 0,
-          description: desc,
-          provider: "Catbox Self-Serve Engine"
-        });
-        
-        if (profile) {
-          profile.impressionCount += 1;
-          profile.balance = parseFloat(Math.max(0, profile.balance - viewCost).toFixed(4));
-          await store.updateProfile("my_account", profile);
-        }
-        console.log(`[Catbox Telemetry Server] Self-serve ad impression processed. Cost $${viewCost} deducted from ledger.`);
+      if (getSystemIdleState()) {
+        console.log(`[Catbox Telemetry Server] System is IDLE. Served ad: "${selected.text}" without ledger storage.`);
       } else {
-        const platformFee = parseFloat(((grossVal * activePlatformFeePercent) / 100).toFixed(4));
-        const devPayout = parseFloat((grossVal - platformFee).toFixed(4));
+        const isSelfServe = selected.isSelfServe === true;
+        const currentInstalls = profile?.installsCount || 8;
+        
+        const splitResult = CatboxAtomicEngine.calculateMilestoneSplit(currentInstalls);
+        const activePlatformFeePercent = isSelfServe ? 0 : splitResult.platformPercent;
+        
+        const grossVal = 0.06;
+        
+        if (isSelfServe) {
+          const viewCost = grossVal;
+          const platformFee = 0.0;
+          
+          const desc = `[Self-Serve Promo] Impression served for custom creative: "${selected.text}" (0% Platform Fee penalty)`;
+          await store.appendBlock({
+            type: "AD_IMPRESSION",
+            developerId: "my_account",
+            amount: -viewCost,
+            platformCut: platformFee,
+            platformPercent: 0,
+            description: desc,
+            provider: "Catbox Self-Serve Engine"
+          });
+          
+          if (profile) {
+            profile.impressionCount += 1;
+            profile.balance = parseFloat(Math.max(0, profile.balance - viewCost).toFixed(4));
+            await store.updateProfile("my_account", profile);
+          }
+          console.log(`[Catbox Telemetry Server] Self-serve ad impression processed. Cost $${viewCost} deducted from ledger.`);
+        } else {
+          const platformFee = parseFloat(((grossVal * activePlatformFeePercent) / 100).toFixed(4));
+          const devPayout = parseFloat((grossVal - platformFee).toFixed(4));
 
-        const desc = `[Legitimate Impression] VS Code extension ad display: "${selected.text}" (Split: Developer ${splitResult.developerPercent}% / Platform ${splitResult.platformPercent}%)`;
-        await store.appendBlock({
-          type: "AD_IMPRESSION",
-          developerId: "my_account",
-          amount: devPayout,
-          platformCut: platformFee,
-          platformPercent: activePlatformFeePercent,
-          description: desc,
-          provider: "Catbox Atomic Engine"
-        });
+          const desc = `[Legitimate Impression] VS Code extension ad display: "${selected.text}" (Split: Developer ${splitResult.developerPercent}% / Platform ${splitResult.platformPercent}%)`;
+          await store.appendBlock({
+            type: "AD_IMPRESSION",
+            developerId: "my_account",
+            amount: devPayout,
+            platformCut: platformFee,
+            platformPercent: activePlatformFeePercent,
+            description: desc,
+            provider: "Catbox Atomic Engine"
+          });
 
-        if (profile) {
-          profile.impressionCount += 1;
-          profile.balance = parseFloat((profile.balance + devPayout).toFixed(4));
-          await store.updateProfile("my_account", profile);
+          if (profile) {
+            profile.impressionCount += 1;
+            profile.balance = parseFloat((profile.balance + devPayout).toFixed(4));
+            await store.updateProfile("my_account", profile);
+          }
+          console.log(`[Catbox Telemetry Server] Legitimate Impression verified and logged.`);
         }
-        console.log(`[Catbox Telemetry Server] Legitimate Impression verified and logged.`);
       }
 
       if (selected.text !== houseAd.text) {
@@ -1175,9 +1259,168 @@ app.post("/api/atomic/report-click", async (req, res) => {
   }
 });
 
+// Serve the Android Termux automated bash setup script
+app.get("/api/termux/install", (req, res) => {
+  const host = req.get("host") || "localhost:3000";
+  const protocol = req.protocol === "https" || req.headers["x-forwarded-proto"] === "https" ? "https" : "http";
+  const baseUrl = `${protocol}://${host}`;
+
+  const bashScript = `#!/bin/bash
+# CATBOX SYSTEM - OPEN KICKBACKS PROTOCOL
+# Android Termux Client Installer
+
+echo -e "\\e[1;33m"
+echo "   ____  ___  ______ ___   ____  _  __"
+echo "  / ___|/ _ \\\\|_   _// _ \\\\ / ___|| |/ /"
+echo " | |   | |_| | | | | | | | |     | ' / "
+echo " | |___|  _  | | | | |_| | |___  | . \\\\ "
+echo "  \\\\____|_| |_| |_|  \\\\___/ \\\\____| |_|\\\\_\\\\"
+echo "  OPEN KICKBACKS PROTOCOL -- TERMUX LAYER"
+echo -e "\\e[0m"
+
+echo -e "\\e[1;30mIntegrating Catbox stream terminal daemon...\\e[0m"
+
+# Locate binaries path in Termux
+if [ -d "/data/data/com.termux/files/usr/bin" ]; then
+    BIN_DIR="/data/data/com.termux/files/usr/bin"
+else
+    BIN_DIR="/usr/local/bin"
+    if [ ! -w "$BIN_DIR" ]; then
+        BIN_DIR="$HOME/bin"
+        mkdir -p "$BIN_DIR"
+    fi
+fi
+
+TARGET_BIN="$BIN_DIR/catbox"
+
+echo -e "\\e[1;32m✓ Target binary directory found: $BIN_DIR\\e[0m"
+
+# Create script
+cat << 'EOF' > "$TARGET_BIN"
+#!/bin/bash
+# Catbox Termux Ad Sync Client
+
+SERVER_URL="HOST_PLACEHOLDER"
+CONTEXT="android termux dev"
+
+# Fetch next high-yield micro-ad from Catbox network
+RESPONSE=$(curl -s -X POST -H "Content-Type: application/json" -d "{\\"developerId\\":\\"my_account\\",\\"context\\":\\"$CONTEXT\\",\\"format\\":\\"Termux CLI Banner\\",\\"actionType\\":\\"IMPRESSION\\"}" "$SERVER_URL/api/ad/fetch" 2>/dev/null)
+
+if [ $? -ne 0 ] || [ -z "$RESPONSE" ]; then
+    # Offline fallback
+    echo -e "\\e[1;30m[Catbox Feed Offline]\\e[0m \\e[33m✶ Saffron-Host: Built by gold-standard architects, loved by elite developers ↗\\e[0m"
+    exit 0
+fi
+
+# Try to parse adMessage, provider and devPayout using sed
+MESSAGE=$(echo "$RESPONSE" | sed -E 's/.*"adMessage":"([^"]+)".*/\\1/' 2>/dev/null)
+PROVIDER=$(echo "$RESPONSE" | sed -E 's/.*"provider":"([^"]+)".*/\\1/' 2>/dev/null)
+PAYOUT=$(echo "$RESPONSE" | sed -E 's/.*"devPayout":([0-9.]+).*/\\1/' 2>/dev/null)
+
+if [ -n "$MESSAGE" ] && [ "$MESSAGE" != "$RESPONSE" ]; then
+    echo -e "\\e[1;33m[Catbox Ad]\\e[0m \\e[1;37m\\"$MESSAGE\\"\\e[0m \\e[1;30m(via $PROVIDER | Payout: +\\$\\$PAYOUT)\\e[0m"
+else
+    echo -e "\\e[1;30m[Catbox Feed Idle]\\e[0m \\e[33m✶ Drizzle ORM: Strictly typed queries for high-performance React/Node apps ↗\\e[0m"
+fi
+EOF
+
+chmod +x "$TARGET_BIN"
+
+# Replace HOST_PLACEHOLDER with actual server URL
+sed -i "s|HOST_PLACEHOLDER|${baseUrl}|g" "$TARGET_BIN" 2>/dev/null || sed -i "" "s|HOST_PLACEHOLDER|${baseUrl}|g" "$TARGET_BIN"
+
+echo -e "\\e[1;32m✓ Catbox command installed successfully!\\e[0m"
+echo -e "You can run it directly by typing: \\e[1;36mcatbox\\e[0m"
+echo -e ""
+echo -e "\\e[1;35mWant auto-earning inside your prompt?\\e[0m"
+echo -e "Add this line to your \\e[1;34m~/.bashrc\\e[0m or \\e[1;34m~/.zshrc\\e[0m:"
+echo -e "  \\e[32mcatbox\\e[0m"
+echo -e ""
+echo -e "Now, every session start or command refresh will verify & log new click splits!"
+`;
+
+  res.setHeader("Content-Type", "application/x-sh");
+  res.send(bashScript);
+});
+
+// telemetry tracking endpoints
+app.post("/api/telemetry", async (req, res) => {
+  try {
+    const { events } = req.body;
+    if (!events || !Array.isArray(events)) {
+      return res.status(400).json({ success: false, error: "Missing or invalid events array" });
+    }
+
+    if (getSystemIdleState()) {
+      console.log(`[Telemetry Pipeline] System is currently idle. Telemetry events ignored.`);
+      return res.json({
+        success: true,
+        processed: 0,
+        dropped: events.length,
+        isIdle: true,
+        message: "System is idle (AFK). Telemetry processing paused."
+      });
+    }
+
+    const uniqueEvents: TelemetryEvent[] = [];
+    let duplicateCount = 0;
+
+    for (const event of events) {
+      if (!event.event_id || !event.user_id || !event.ad_id || !event.campaign_id || !event.timestamp || !event.surface) {
+        continue;
+      }
+      const isDuplicate = await checkAndMarkDuplicate(event.event_id);
+      if (isDuplicate) {
+        duplicateCount++;
+      } else {
+        uniqueEvents.push(event);
+      }
+    }
+
+    if (uniqueEvents.length > 0) {
+      await saveTelemetryEvents(uniqueEvents);
+    }
+
+    res.json({
+      success: true,
+      processed: uniqueEvents.length,
+      dropped: duplicateCount,
+    });
+  } catch (error: any) {
+    console.error("[Telemetry Tracking Route Error]", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get("/api/telemetry/stats", async (req, res) => {
+  try {
+    const stats = await getTelemetryStats();
+    const idleDetails = getIdleDetectorDetails();
+    res.json({
+      success: true,
+      ...stats,
+      idle: idleDetails.isIdle,
+      idleDetails
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post("/api/telemetry/touch", async (req, res) => {
+  try {
+    await simulateActivity();
+    res.json({ success: true, message: "Activity successfully simulated in ~/.claude/transcript.json." });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Start server
 async function startServer() {
   await store.init();
+  await initializeTelemetryStore();
+  await initializeIdleDetector();
 
   const atomicEngine = new CatboxAtomicEngine(() => store.cachedProfiles["my_account"]);
   atomicEngine.startIsolatedServer(5176);

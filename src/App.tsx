@@ -62,6 +62,7 @@ export default function App() {
   // Background Customization States for Stained Glass Themes
   const [bgType, setBgType] = useState<"dark" | "roof" | "custom">("custom");
   const [customBgUrl, setCustomBgUrl] = useState(stainedGlassCarrier);
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
 
 
   // Core profile & ledger states
@@ -580,8 +581,16 @@ export default function App() {
             </div>
             
             <button
+              onClick={() => setShowThemeMenu(!showThemeMenu)}
+              className="px-2.5 py-1 text-[10px] font-mono border border-zinc-800 text-gold-400 bg-black hover:border-gold-550 rounded uppercase transition-colors"
+              title="Toggle theme backdrop customization options"
+            >
+              ⚙️ Customize Theme Backdrops
+            </button>
+
+            <button
               onClick={handleLedgerHardReset}
-              className="px-2.5 py-1 text-[10px] font-mono border border-zinc-800 text-zinc-500 bg-black hover:text-gold-400 hover:border-gold-700/50 rounded uppercase transition-colors"
+              className="px-2.5 py-1 text-[10px] font-mono border border-zinc-850 text-zinc-500 bg-black hover:text-zinc-300 hover:border-zinc-700 rounded uppercase transition-colors"
               title="Reset the global transparent simulated state back to original ledger genesis"
             >
               Reset State
@@ -666,78 +675,80 @@ export default function App() {
       </section>
 
       {/* Background Stained Glass Settings Strip */}
-      <section className="bg-zinc-950/90 border-b border-gold-900/40 px-8 py-3">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-gold-400 animate-pulse" />
-            <span className="text-[10px] uppercase font-mono tracking-widest text-gold-300">
-              Stained Glass Theme Backdrop:
-            </span>
-          </div>
-          
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => {
-                setBgType("custom");
-                setCustomBgUrl(stainedGlassCarrier);
-              }}
-              className={`px-3 py-1 text-[9px] font-mono rounded uppercase transition-all border cursor-pointer ${
-                bgType === "custom" && customBgUrl === stainedGlassCarrier
-                  ? "bg-gold-400 text-black border-gold-400 font-bold shadow-[0_0_8px_rgba(194,147,52,0.3)]"
-                  : "bg-black text-zinc-400 border-zinc-800 hover:text-white"
-              }`}
-            >
-              ⚓ Stained Glass Carrier (Attached Img)
-            </button>
-            <button
-              onClick={() => setBgType("roof")}
-              className={`px-3 py-1 text-[9px] font-mono rounded uppercase transition-all border cursor-pointer ${
-                bgType === "roof"
-                  ? "bg-gold-400 text-black border-gold-400 font-bold shadow-[0_0_8px_rgba(194,147,52,0.3)]"
-                  : "bg-black text-zinc-400 border-zinc-800 hover:text-white"
-              }`}
-            >
-              ☀️ Golden Hour Rooftop
-            </button>
-            <button
-              onClick={() => {
-                setBgType("custom");
-                if (customBgUrl === stainedGlassCarrier) {
-                  setCustomBgUrl("https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=1200&auto=format&fit=crop");
-                }
-              }}
-              className={`px-3 py-1 text-[9px] font-mono rounded uppercase transition-all border cursor-pointer ${
-                bgType === "custom" && customBgUrl !== stainedGlassCarrier
-                  ? "bg-gold-400 text-black border-gold-400 font-bold shadow-[0_0_8px_rgba(194,147,52,0.3)]"
-                  : "bg-black text-zinc-400 border-zinc-800 hover:text-white"
-              }`}
-            >
-              🖼️ Custom Background URL
-            </button>
-            <button
-              onClick={() => setBgType("dark")}
-              className={`px-3 py-1 text-[9px] font-mono rounded uppercase transition-all border cursor-pointer ${
-                bgType === "dark"
-                  ? "bg-gold-400 text-black border-gold-400 font-bold"
-                  : "bg-black text-zinc-400 border-zinc-800 hover:text-white"
-              }`}
-            >
-              🌑 Slate Midnight Canvas
-            </button>
+      {showThemeMenu && (
+        <section className="bg-zinc-950/90 border-b border-gold-900/40 px-8 py-3 animate-fade-in relative z-20">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-gold-400 animate-pulse" />
+              <span className="text-[10px] uppercase font-mono tracking-widest text-gold-300">
+                Stained Glass Theme Backdrop:
+              </span>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => {
+                  setBgType("custom");
+                  setCustomBgUrl(stainedGlassCarrier);
+                }}
+                className={`px-3 py-1 text-[9px] font-mono rounded uppercase transition-all border cursor-pointer ${
+                  bgType === "custom" && customBgUrl === stainedGlassCarrier
+                    ? "bg-gold-400 text-black border-gold-400 font-bold shadow-[0_0_8px_rgba(194,147,52,0.3)]"
+                    : "bg-black text-zinc-400 border-zinc-800 hover:text-white"
+                }`}
+              >
+                ⚓ Stained Glass Carrier (Attached Img)
+              </button>
+              <button
+                onClick={() => setBgType("roof")}
+                className={`px-3 py-1 text-[9px] font-mono rounded uppercase transition-all border cursor-pointer ${
+                  bgType === "roof"
+                    ? "bg-gold-400 text-black border-gold-400 font-bold shadow-[0_0_8px_rgba(194,147,52,0.3)]"
+                    : "bg-black text-zinc-450 border-zinc-800 hover:text-white"
+                }`}
+              >
+                ☀️ Golden Hour Rooftop
+              </button>
+              <button
+                onClick={() => {
+                  setBgType("custom");
+                  if (customBgUrl === stainedGlassCarrier) {
+                    setCustomBgUrl("https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=1200&auto=format&fit=crop");
+                  }
+                }}
+                className={`px-3 py-1 text-[9px] font-mono rounded uppercase transition-all border cursor-pointer ${
+                  bgType === "custom" && customBgUrl !== stainedGlassCarrier
+                    ? "bg-gold-400 text-black border-gold-400 font-bold shadow-[0_0_8px_rgba(194,147,52,0.3)]"
+                    : "bg-black text-zinc-450 border-zinc-800 hover:text-white"
+                }`}
+              >
+                🖼️ Custom Background URL
+              </button>
+              <button
+                onClick={() => setBgType("dark")}
+                className={`px-3 py-1 text-[9px] font-mono rounded uppercase transition-all border cursor-pointer ${
+                  bgType === "dark"
+                    ? "bg-gold-400 text-black border-gold-400 font-bold"
+                    : "bg-black text-zinc-450 border-zinc-800 hover:text-white"
+                }`}
+              >
+                🌑 Slate Midnight Canvas
+              </button>
 
-            {bgType === "custom" && (
-              <input
-                type="text"
-                value={customBgUrl}
-                onChange={(e) => setCustomBgUrl(e.target.value)}
-                placeholder="Paste any PNG/JPG image link..."
-                className="bg-black text-zinc-300 border border-gold-900/60 text-[9px] rounded px-2 py-1 focus:outline-none focus:border-gold-400 w-64 font-mono select-all"
-                title="Input any web image URL or path inside assets/ folder to instantly render it under the leaded stained-glass grid!"
-              />
-            )}
+              {bgType === "custom" && (
+                <input
+                  type="text"
+                  value={customBgUrl}
+                  onChange={(e) => setCustomBgUrl(e.target.value)}
+                  placeholder="Paste any PNG/JPG image link..."
+                  className="bg-black text-zinc-300 border border-gold-900/60 text-[9px] rounded px-2 py-1 focus:outline-none focus:border-gold-400 w-64 font-mono select-all"
+                  title="Input any web image URL or path inside assets/ folder to instantly render it under the leaded stained-glass grid!"
+                />
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Main Container - Collapsible Grid */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-12 gap-6 items-start">
@@ -745,33 +756,32 @@ export default function App() {
         {/* 🌟 ROUTE 1: Landing Page */}
         {currentRoute === "landing" && (
           <div className="col-span-12 space-y-8 animate-fade-in text-zinc-100">
-            {/* Visual Hero Box */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center bg-zinc-950 p-6 md:p-8 border-2 border-double border-gold-500 rounded-sm relative">
-              <div className="absolute top-0 right-10 w-24 h-1 bg-gradient-to-r from-gold-600 to-gold-400"></div>
+            {/* Elegant Hero Box */}
+            <div className="bg-zinc-950 p-6 md:p-8 border border-gold-600 rounded-sm relative">
+              <div className="absolute top-0 right-10 w-24 h-1 bg-gold-400"></div>
               
-              <div className="md:col-span-7 space-y-4">
+              <div className="space-y-4 max-w-3xl">
                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-gold-950/40 border border-gold-800 rounded">
                   <Sparkles className="w-3.5 h-3.5 text-gold-400 animate-pulse" />
                   <span className="text-[9px] uppercase tracking-widest font-mono text-gold-300">
-                    Sovereign Kickbacks Alternative
+                    Open Kickbacks Alternative
                   </span>
                 </div>
                 
-                <h1 className="font-deco text-3xl md:text-4xl font-extrabold tracking-tight text-white leading-none">
-                  TRANSPARENT REVENUE <br/>
-                  <span className="text-gold-400">FOR HARDWORKING DEVS</span>
+                <h1 className="font-deco text-2xl md:text-3.5xl font-extrabold tracking-tight text-white leading-tight">
+                  PASSIVE EARNINGS <span className="text-gold-400">WITHOUT TELEMETRY TRACKERS</span>
                 </h1>
                 
-                <p className="text-xs text-zinc-400 leading-relaxed max-w-xl">
-                  Catbox is a decentralized, local-first brokerage alternative designed to reward software builders. By connecting your local environment or custom ad servers, you earn fully audited splits with zero keystroke logging or third-party monitoring.
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  Catbox is a transparent, local-first open kickbacks platform designed specifically for software builders. We stream micro-ads strictly related to software tools directly onto your IDE status bar or command line—delivering 100% clean monetization without keylogging, browser extensions, or cloud cookies.
                 </p>
 
                 <div className="flex flex-wrap gap-2 pt-2">
                   <a
                     href="#/dashboard"
-                    className="px-5 py-2.5 bg-gradient-to-r from-gold-605 to-gold-400 hover:from-gold-500 hover:to-gold-300 text-zinc-950 font-bold text-xs uppercase tracking-wider rounded-sm transition-all flex items-center gap-2 cursor-pointer shadow-md"
+                    className="px-5 py-2.5 bg-gradient-to-r from-gold-550 to-gold-400 hover:from-gold-500 hover:to-gold-300 text-zinc-950 font-bold text-xs uppercase tracking-wider rounded-sm transition-all flex items-center gap-2 cursor-pointer shadow-md"
                   >
-                    Configure Broker
+                    Set Up Custom Providers
                     <ExternalLink className="w-3.5 h-3.5 text-zinc-950" />
                   </a>
                   <a
@@ -782,164 +792,102 @@ export default function App() {
                   </a>
                 </div>
               </div>
-
-              {/* Decorative Stained-glass side cover */}
-              <div className="md:col-span-5 relative border-4 border-double border-gold-700/60 p-4 rounded bg-black flex flex-col justify-between min-h-[220px] shadow-lg">
-                <div className="space-y-2">
-                  <div className="text-[10px] font-mono text-gold-300 uppercase tracking-widest flex items-center gap-1.5">• Real-time Ledger Signature</div>
-                  <div className="p-2.5 rounded bg-zinc-950 border border-zinc-90 w-full font-mono text-[9.5px] text-zinc-400 space-y-1">
-                    <p className="text-white">{"{"}</p>
-                    <p className="pl-4">"protocol": "CATBOX_ATOMIC_VAL_V1",</p>
-                    <p className="pl-4">"active_split": "15%_PLATFORM_CUT",</p>
-                    <p className="pl-4">"balance_usd": <span className="text-gold-300 font-bold">"${profile.balance.toFixed(4)}"</span></p>
-                    <p className="text-white">{"}"}</p>
-                  </div>
-                </div>
-                <div className="text-[8px] font-mono text-zinc-650 uppercase tracking-wider text-right">
-                  SECURE CRYPTO VAULT DISPATCHED ON LOCAL STORAGE
-                </div>
-              </div>
             </div>
 
-            {/* How It Works Segment */}
-            <div className="space-y-4">
-              <div className="border-b border-gold-900/60 pb-2">
-                <h3 className="font-deco text-xs text-gold-300 uppercase tracking-widest flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-gold-400" />
-                  How Catbox Architecture Works
-                </h3>
+            {/* Split Grid for Developer and Sponsor value propositions */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-2">
+              
+              {/* Left Column: FOR DEVELOPERS */}
+              <div className="bg-zinc-950 p-6 border border-zinc-800 rounded-sm space-y-6">
+                <div className="border-b border-gold-900/40 pb-3 flex items-center gap-2">
+                  <span className="p-1 px-2.5 bg-gold-950 text-gold-400 font-mono text-[10px] font-bold rounded">DEV</span>
+                  <h2 className="font-deco text-sm font-bold text-white uppercase tracking-wider">For Software Developers</h2>
+                </div>
+
+                <div className="space-y-5">
+                  {/* Q1 */}
+                  <div>
+                    <h3 className="font-sans text-xs font-bold text-gold-300 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+                      <span className="text-gold-400 font-mono text-s font-semibold">1.</span> What does it do?
+                    </h3>
+                    <p className="text-[11.5px] text-zinc-400 leading-relaxed">
+                      Catbox lets you passively earn micro-payouts by showing tasteful, text-only developer ads (like database servers or bug tracking platforms) right in your workspace tools. No tracking, zero third-party scripts.
+                    </p>
+                  </div>
+
+                  {/* Q2 */}
+                  <div>
+                    <h3 className="font-sans text-xs font-bold text-gold-300 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+                      <span className="text-gold-400 font-mono text-s font-semibold">2.</span> How do you get it to do it?
+                    </h3>
+                    <p className="text-[11.5px] text-zinc-400 leading-relaxed">
+                      Simply start your local status micro-client. Under our <a href="#/cli" className="text-gold-450 hover:underline">Interactive CLI</a> tab, you can copy the signed live-stream endpoint and configure your workspace script to fetch updates instantly.
+                    </p>
+                  </div>
+
+                  {/* Q3 */}
+                  <div>
+                    <h3 className="font-sans text-xs font-bold text-gold-300 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+                      <span className="text-gold-400 font-mono text-s font-semibold">3.</span> How can you be certain you will indeed get paid?
+                    </h3>
+                    <p className="text-[11.5px] text-zinc-400 leading-relaxed">
+                      Every single impression and click is written as an immutable block transaction to our <a href="#/ledger" className="text-gold-450 hover:underline">Auditable Public Ledger</a>. All balances are stored transparently in your native <code className="bg-black border border-zinc-850 px-1 py-0.5 rounded text-[10.5px]">./data/</code> files, and dispersals process instantly via Stripe Escrow.
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-zinc-950 p-5 rounded-sm border border-gold-900/40 relative space-y-2">
-                  <div className="text-gold-400 font-serif italic text-3xl font-extrabold absolute top-2 right-4 opacity-20">01</div>
-                  <h4 className="font-serif text-gold-300 text-xs font-bold uppercase tracking-wider">Configure Ad Server</h4>
-                  <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    Choose from standard providers, configure your custom affiliate override links, or plug in a completely independent third-party ad network.
-                  </p>
+              {/* Right Column: FOR AD PROVIDERS & SPONSORS */}
+              <div className="bg-zinc-950 p-6 border border-zinc-800 rounded-sm space-y-6">
+                <div className="border-b border-gold-900/40 pb-3 flex items-center gap-2">
+                  <span className="p-1 px-2.5 bg-zinc-900 text-zinc-400 font-mono text-[10px] font-bold rounded">SPONSOR</span>
+                  <h2 className="font-deco text-sm font-bold text-white uppercase tracking-wider">For Ad Providers & Sponsors</h2>
                 </div>
 
-                <div className="bg-zinc-950 p-5 rounded-sm border border-gold-900/40 relative space-y-2">
-                  <div className="text-gold-400 font-serif italic text-3xl font-extrabold absolute top-2 right-4 opacity-20">02</div>
-                  <h4 className="font-serif text-gold-300 text-xs font-bold uppercase tracking-wider">Zero-Intercept Stream</h4>
-                  <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    The local code extension listens strictly to direct ad streams via a verified REST gateway. No proprietary code files are ever read or reported.
-                  </p>
-                </div>
+                <div className="space-y-5">
+                  {/* Q1 */}
+                  <div>
+                    <h3 className="font-sans text-xs font-bold text-gold-300 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+                      <span className="text-gold-400 font-mono text-s font-semibold">1.</span> Why does it work for you?
+                    </h3>
+                    <p className="text-[11.5px] text-zinc-400 leading-relaxed">
+                      Standard banner ads get 100% ad-blocked by developer crowds. Catbox delivers sponsored status lines directly inside terminals or editors, engaging software builders directly at peak focus with zero friction.
+                    </p>
+                  </div>
 
-                <div className="bg-zinc-950 p-5 rounded-sm border border-gold-900/40 relative space-y-2">
-                  <div className="text-gold-400 font-serif italic text-3xl font-extrabold absolute top-2 right-4 opacity-20">03</div>
-                  <h4 className="font-serif text-gold-300 text-xs font-bold uppercase tracking-wider">Verifiable Ledger Payout</h4>
-                  <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    Every ad view is signed as a decentralized block transaction. Once validated, withdraw your accumulated balances via secure Stripe Escrow.
-                  </p>
+                  {/* Q2 */}
+                  <div>
+                    <h3 className="font-sans text-xs font-bold text-gold-300 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+                      <span className="text-gold-400 font-mono text-s font-semibold">2.</span> How do you get it to work?
+                    </h3>
+                    <p className="text-[11.5px] text-zinc-400 leading-relaxed">
+                      Register your custom server endpoints via the <a href="#/dashboard" className="text-gold-450 hover:underline">Provider Dashboard</a>, or register a custom Self-Serve ad slogan directly. Your custom links take instant priority.
+                    </p>
+                  </div>
+
+                  {/* Q3 */}
+                  <div>
+                    <h3 className="font-sans text-xs font-bold text-gold-300 uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+                      <span className="text-gold-400 font-mono text-s font-semibold">3.</span> How do you know you are safe?
+                    </h3>
+                    <p className="text-[11.5px] text-zinc-400 leading-relaxed">
+                      Our REST engine enforces cryptographic validation on every ping using time-relative telemetry keys (SHA-256 signatures). We log clean transparent events to trace clicks and completely eliminate bot click-spam.
+                    </p>
+                  </div>
                 </div>
               </div>
+
             </div>
 
-            {/* GETTING STARTED checklist (Interactive) */}
-            <div className="bg-zinc-950 p-6 border border-zinc-800 rounded-sm space-y-5">
-              <div>
-                <h3 className="font-deco text-sm font-bold text-gold-300 uppercase tracking-widest flex items-center gap-2">
-                  <Check className="w-4 h-4 text-gold-400" />
-                  Your Getting Started Checklist
-                </h3>
-                <p className="text-[11px] text-zinc-500 mt-1">
-                  Interact with each task to complete your local setup and test the core brokerage loop.
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                {/* Checklist item 1 */}
-                <div 
-                  onClick={() => toggleChecklistStep("step-concepts")}
-                  className="flex items-start gap-3.5 p-3.5 bg-black border border-zinc-905 rounded hover:border-gold-800/40 transition-all cursor-pointer select-none"
-                >
-                  <div className={`mt-0.5 shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-all ${completedSteps["step-concepts"] ? 'bg-gold-505 border-gold-400 text-black' : 'border-zinc-800 bg-zinc-950'}`}>
-                    {completedSteps["step-concepts"] && <Check className="w-3 h-3 stroke-[3px]" />}
-                  </div>
-                  <div className="space-y-1">
-                    <div className={`text-xs font-semibold uppercase tracking-wider ${completedSteps["step-concepts"] ? 'text-zinc-500 line-through' : 'text-gold-300'}`}>
-                      1. Explore Ad Setup & Providers
-                    </div>
-                    <p className="text-[10.5px] text-zinc-500 leading-normal">
-                      Visit the <span className="text-gold-400/80 font-mono">Provider Dashboard</span> tab to customize platform split ratios, register custom direct ad keys, or configure affiliate links.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Checklist item 2 */}
-                <div 
-                  onClick={() => toggleChecklistStep("step-sim")}
-                  className="flex items-start gap-3.5 p-3.5 bg-black border border-zinc-905 rounded hover:border-gold-800/40 transition-all cursor-pointer select-none"
-                >
-                  <div className={`mt-0.5 shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-all ${completedSteps["step-sim"] ? 'bg-gold-505 border-gold-400 text-black' : 'border-zinc-800 bg-zinc-950'}`}>
-                    {completedSteps["step-sim"] && <Check className="w-3 h-3 stroke-[3px]" />}
-                  </div>
-                  <div className="space-y-1">
-                    <div className={`text-xs font-semibold uppercase tracking-wider ${completedSteps["step-sim"] ? 'text-zinc-500 line-through' : 'text-gold-300'}`}>
-                      2. Run the Interactive Simulation Terminal
-                    </div>
-                    <p className="text-[10.5px] text-zinc-500 leading-normal">
-                      Head to the <span className="text-gold-400/80 font-mono">Interactive CLI</span>. Trigger a manual terminal impression or custom ad click to watch real-time events fire and trace telemetry logs.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Checklist item 3 */}
-                <div 
-                  onClick={() => toggleChecklistStep("step-promo")}
-                  className="flex items-start gap-3.5 p-3.5 bg-black border border-zinc-905 rounded hover:border-gold-800/40 transition-all cursor-pointer select-none"
-                >
-                  <div className={`mt-0.5 shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-all ${completedSteps["step-promo"] ? 'bg-gold-505 border-gold-400 text-black' : 'border-zinc-800 bg-zinc-950'}`}>
-                    {completedSteps["step-promo"] && <Check className="w-3 h-3 stroke-[3px]" />}
-                  </div>
-                  <div className="space-y-1">
-                    <div className={`text-xs font-semibold uppercase tracking-wider ${completedSteps["step-promo"] ? 'text-zinc-500 line-through' : 'text-gold-300'}`}>
-                      3. Create a Self-Serve Custom Ad Campaign
-                    </div>
-                    <p className="text-[10.5px] text-zinc-500 leading-normal">
-                      Submit your own promotional ad copy in the Provider Dashboard. Self-serve campaigns run at exact wholesale values with 100% of platform fee cuts entirely waived.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Checklist item 4 */}
-                <div 
-                  onClick={() => toggleChecklistStep("step-escrow")}
-                  className="flex items-start gap-3.5 p-3.5 bg-black border border-zinc-905 rounded hover:border-gold-800/40 transition-all cursor-pointer select-none"
-                >
-                  <div className={`mt-0.5 shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-all ${completedSteps["step-escrow"] ? 'bg-gold-505 border-gold-400 text-black' : 'border-zinc-800 bg-zinc-950'}`}>
-                    {completedSteps["step-escrow"] && <Check className="w-3 h-3 stroke-[3px]" />}
-                  </div>
-                  <div className="space-y-1">
-                    <div className={`text-xs font-semibold uppercase tracking-wider ${completedSteps["step-escrow"] ? 'text-zinc-500 line-through' : 'text-gold-300'}`}>
-                      4. Auditing Multi-party Ledger Transactions & Escrow
-                    </div>
-                    <p className="text-[10.5px] text-zinc-550 leading-normal">
-                      Access <span className="text-gold-400/80 font-mono">Ledger & Escrow</span> to verify secure encryption of developer payout credentials and audit cryptographic block ledgers manually.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Checklist item 5 */}
-                <div 
-                  onClick={() => toggleChecklistStep("step-vscode")}
-                  className="flex items-start gap-3.5 p-3.5 bg-black border border-zinc-905 rounded hover:border-gold-800/40 transition-all cursor-pointer select-none"
-                >
-                  <div className={`mt-0.5 shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-all ${completedSteps["step-vscode"] ? 'bg-gold-505 border-gold-400 text-black' : 'border-zinc-800 bg-zinc-950'}`}>
-                    {completedSteps["step-vscode"] && <Check className="w-3 h-3 stroke-[3px]" />}
-                  </div>
-                  <div className="space-y-1">
-                    <div className={`text-xs font-semibold uppercase tracking-wider ${completedSteps["step-vscode"] ? 'text-zinc-500 line-through' : 'text-gold-300'}`}>
-                      5. Boot the Local VS Code Status Bar Extension
-                    </div>
-                    <p className="text-[10.5px] text-zinc-550 leading-normal">
-                      Compile and load the VS Code extension folder inside your native editor to display live micro-earnings directly in your IDE Status Bar.
-                    </p>
-                  </div>
-                </div>
-              </div>
+            {/* Read More Section */}
+            <div className="p-5 bg-zinc-950 border border-zinc-900 rounded text-zinc-400 leading-relaxed text-[11px] font-sans">
+              <h4 className="text-zinc-200 uppercase tracking-widest font-mono font-semibold text-[10px] mb-2 flex items-center gap-1.5">
+                <HelpCircle className="w-3.5 h-3.5 text-gold-400" />
+                Read More: Technical Architecture & Self-Hosting
+              </h4>
+              <p>
+                Catbox relies on direct peer-to-peer verification schemas. We maintain a local JSON-backed datastore for profile credentials and ledger parameters, using standard atomic write algorithms to avoid race conditions. In addition, our service integrates directly with the Google Gemini API to dynamically format custom sponsor creative lines appropriate for display under any programming theme you request. You are completely sovereign, secure, and protected.
+              </p>
             </div>
           </div>
         )}

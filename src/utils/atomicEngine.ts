@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import http from "http";
 
 /**
  * CatboxAtomicEngine - Core High-Frequency Ad dispatching and VS Code extension sync service.
@@ -175,31 +176,42 @@ export class CatboxAtomicEngine {
    * Starts the standalone ad brokerage socket server on port 5176
    */
   public startIsolatedServer(port: number = 5176) {
-    // Dynamically fallback to ATOMIC_PORT, or PORT if targeted in limited platforms
+    // Under no circumstances should the isolated background server listen on process.env.PORT,
+    // which is reserved for the primary Express application traffic.
     const targetPort = process.env.ATOMIC_PORT 
       ? parseInt(process.env.ATOMIC_PORT, 10) 
-      : (process.env.PORT && process.env.PORT !== "3000" ? parseInt(process.env.PORT, 10) : port);
+      : (port === 3000 ? 5176 : port);
 
     this.port = targetPort;
     try {
-      const serverInstance = this.app.listen(this.port, "0.0.0.0", () => {
-        console.log(`[CatboxAtomicEngine] Standalone isolated server listening on http://0.0.0.0:${this.port}`);
-      });
+      const serverInstance = http.createServer(this.app);
 
-      // Handle server-wide errors gracefully (e.g. EADDRINUSE if port 5176 is restricted)
+      // Handle server-wide errors gracefully (e.g. EADDRINUSE if port is restricted)
       serverInstance.on("error", (err: any) => {
         if (err.code === "EADDRINUSE") {
           console.warn(`[CatboxAtomicEngine] Target port ${this.port} is restricted or already in use. Attempting hot fallback...`);
-          // Fallback dynamically: we can mount on ephemeral port or share process limits
-          const fallbackPort = 0; // OS assigns random unconfined port
-          const retryServer = this.app.listen(fallbackPort, "0.0.0.0", () => {
-            const address = retryServer.address();
-            const realPort = typeof address === "object" && address !== null ? address.port : 0;
-            console.log(`[CatboxAtomicEngine] Dynamic fallback established. Standalone server listening on port ${realPort}`);
-          });
+          // Fallback dynamically: we can mount on ephemeral port (OS assigns random unconfined port)
+          const fallbackPort = 0;
+          try {
+            const retryServer = http.createServer(this.app);
+            retryServer.on("error", (retryErr: any) => {
+              console.error("[CatboxAtomicEngine] Ephemeral fallback server error:", retryErr);
+            });
+            retryServer.listen(fallbackPort, "0.0.0.0", () => {
+              const address = retryServer.address();
+              const realPort = typeof address === "object" && address !== null ? address.port : 0;
+              console.log(`[CatboxAtomicEngine] Dynamic fallback established. Standalone server listening on port ${realPort}`);
+            });
+          } catch (fallbackErr) {
+            console.error("[CatboxAtomicEngine] Ephemeral fallback server instantiation failed:", fallbackErr);
+          }
         } else {
           console.error("[CatboxAtomicEngine] Socket subscription runtime constraint:", err);
         }
+      });
+
+      serverInstance.listen(this.port, "0.0.0.0", () => {
+        console.log(`[CatboxAtomicEngine] Standalone isolated server listening on http://0.0.0.0:${this.port}`);
       });
     } catch (err) {
       console.error(`[CatboxAtomicEngine] Failed to initiate isolated atomic port listener: ${err}`);

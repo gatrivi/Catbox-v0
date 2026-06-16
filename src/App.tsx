@@ -89,6 +89,12 @@ export default function App() {
   const [omitHouseTips, setOmitHouseTips] = useState(false);
   const [simulatedDays, setSimulatedDays] = useState(90);
 
+  // New Self-Serve Promo and Milestone states
+  const [selfServePromos, setSelfServePromos] = useState<string[]>([]);
+  const [newSelfServeText, setNewSelfServeText] = useState("");
+  const [customInstalls, setCustomInstalls] = useState(8);
+  const [privacyPolicy, setPrivacyPolicy] = useState<{ compliance: string; guarantee: string; terms: string[]; exemptions: string } | null>(null);
+
   // Sync state parameters from profile query safely
   useEffect(() => {
     if (profile) {
@@ -102,8 +108,22 @@ export default function App() {
       if (profile.daysSinceBoost !== undefined) {
         setSimulatedDays(profile.daysSinceBoost);
       }
+      if (profile.selfServePromos) {
+        setSelfServePromos(profile.selfServePromos);
+      }
+      if (profile.installsCount !== undefined) {
+        setCustomInstalls(profile.installsCount);
+      }
     }
-  }, [profile?.id, profile?.daysSinceBoost]);
+  }, [profile?.id, profile?.daysSinceBoost, profile?.selfServePromos, profile?.installsCount]);
+
+  useEffect(() => {
+    // Fetch privacy statements on mount
+    fetch("/api/privacy")
+      .then(res => res.json())
+      .then(data => setPrivacyPolicy(data))
+      .catch(e => console.error("Could not fetch privacy API on dashboard mount", e));
+  }, []);
 
   const handleSaveAffiliateUrls = async () => {
     try {
@@ -224,6 +244,64 @@ export default function App() {
       console.error(err);
     } finally {
       setLoadingAd(false);
+    }
+  };
+
+  // Self-Serve Sponsor Promotion campaign submit handlers
+  const handleAddSelfServePromo = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!newSelfServeText.trim()) return;
+    try {
+      const res = await fetch("/api/self-serve/promo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: newSelfServeText }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNewSelfServeText("");
+        triggerToast("Self-serve sponsor creative submitted successfully (0% fee active).");
+        refreshAllData();
+      } else {
+        alert(data.error || "Failed to submit sponsor campaign request.");
+      }
+    } catch (err) {
+      console.error("Self-Serve Add Error", err);
+    }
+  };
+
+  const handleDeleteSelfServePromo = async (text: string) => {
+    try {
+      const res = await fetch("/api/self-serve/promo/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast("Promo creative removed from stream.");
+        refreshAllData();
+      }
+    } catch (err) {
+      console.error("Self-Serve Delete Error", err);
+    }
+  };
+
+  const handleSimulateInstalls = async (installs: number) => {
+    const val = Math.max(1, installs);
+    setCustomInstalls(val);
+    try {
+      const res = await fetch("/api/developer/simulate-installs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ installs: val }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProfile(data.profile);
+      }
+    } catch (err) {
+      console.error("Milestone Installs simulation error", err);
     }
   };
 
@@ -833,6 +911,145 @@ export default function App() {
                   </button>
                 </div>
               </div>
+            </section>
+
+            {/* USER MILESTONES & REVENUE SPLITS */}
+            <section className="bg-zinc-950 p-4 border border-gold-800 rounded-sm relative space-y-3">
+              <div className="absolute top-0 right-4 w-12 h-1 bg-gold-500/60"></div>
+              <div>
+                <h3 className="font-deco text-xs text-gold-300 uppercase tracking-widest flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5 text-gold-400" />
+                  User Milestones & Splits
+                </h3>
+                <p className="text-[10px] text-zinc-500 mt-1 leading-normal">
+                  Scale your dev splits automatically with total system installs. Move the slider to simulate target milestones.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[9px] font-mono text-zinc-400 uppercase">
+                    <span>Simulated Installs</span>
+                    <span className="text-gold-400 font-bold">{customInstalls} installs</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="1250"
+                    value={customInstalls}
+                    onChange={(e) => handleSimulateInstalls(parseInt(e.target.value, 10))}
+                    className="w-full accent-gold-400 bg-zinc-900 border border-zinc-800 h-1.5 rounded-lg cursor-pointer"
+                  />
+                </div>
+
+                <div className="p-2.5 rounded-sm bg-black border border-gold-950/40 text-[10px] font-mono space-y-1 text-zinc-400">
+                  <div className="flex justify-between">
+                    <span>Installs Range:</span>
+                    <span className="text-white">
+                      {customInstalls <= 10 ? "1 - 10 (Early Bird)" :
+                       customInstalls <= 100 ? "11 - 100" :
+                       customInstalls <= 1000 ? "101 - 1000" : "1001 - 10k"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between font-bold">
+                    <span>Developer Payout Split:</span>
+                    <span className="text-gold-300">
+                      {customInstalls <= 10 ? "97%" :
+                       customInstalls <= 100 ? "95%" :
+                       customInstalls <= 1000 ? "90%" : "85%"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Platform Service Cut:</span>
+                    <span className="text-zinc-500">
+                      {customInstalls <= 10 ? "3%" :
+                       customInstalls <= 100 ? "5%" :
+                       customInstalls <= 1000 ? "10%" : "15%"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* SELF-SERVE PROMO ENGINE */}
+            <section className="bg-zinc-950 p-4 border border-gold-800 rounded-sm relative space-y-3">
+              <div className="absolute top-0 right-4 w-12 h-1 bg-gold-400"></div>
+              <div>
+                <h3 className="font-deco text-xs text-gold-300 uppercase tracking-widest flex items-center gap-1.5">
+                  <Flame className="w-3.5 h-3.5 text-gold-400 animate-pulse" />
+                  Self-Serve Ad Engine
+                </h3>
+                <p className="text-[10px] text-zinc-500 mt-1 leading-normal">
+                  Submit custom lines. Your campaigns run at wholesale costs of <span className="text-gold-400 font-semibold">$0.06 / view</span>. We apply a 0% platform fee penalty (deducted from your balance pool).
+                </p>
+              </div>
+
+              <form onSubmit={handleAddSelfServePromo} className="space-y-2">
+                <div className="space-y-1">
+                  <input
+                    type="text"
+                    value={newSelfServeText}
+                    onChange={(e) => setNewSelfServeText(e.target.value)}
+                    placeholder="✶ Creative: Check my ultra fast Postgres engine ↗"
+                    className="w-full bg-black border border-gold-900/60 rounded-sm px-2.5 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-gold-550 font-sans"
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  id="btn-add-self-serve-promo"
+                  className="w-full py-1.5 bg-gradient-to-r from-gold-600 to-gold-400 hover:from-gold-500 hover:to-gold-300 text-zinc-950 font-bold text-[10px] uppercase tracking-wider rounded-sm transition-all flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Submit Sponsor Campaign
+                </button>
+              </form>
+
+              {selfServePromos.length > 0 && (
+                <div className="space-y-1.5 pt-1.5 border-t border-zinc-800/60">
+                  <span className="text-[8.5px] font-mono uppercase tracking-wider text-zinc-500 font-bold">Your Live Campaigns:</span>
+                  <div className="space-y-1">
+                    {selfServePromos.map((line, i) => (
+                      <div key={i} className="flex justify-between items-center bg-black/50 p-1.5 rounded border border-zinc-900 text-[10px] gap-1">
+                        <span className="text-zinc-450 truncate max-w-[170px]" title={line}>{line}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSelfServePromo(line)}
+                          className="text-red-400 hover:text-red-300 text-[8px] font-mono uppercase shrink-0 px-1 hover:bg-red-950/20 rounded cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* PRIVACY & TRACKING TRANSPARENCY DISPLAY */}
+            <section className="bg-zinc-950 p-4 border border-zinc-800 rounded-sm space-y-3">
+              <h4 className="font-deco text-xs text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-gold-400" />
+                Local-First Sovereignty Guarantee
+              </h4>
+              <p className="text-[9.5px] text-zinc-500 leading-normal">
+                Verifiable security guidelines loaded live from our local gateway. Proving zero keystroke intercepts.
+              </p>
+
+              {privacyPolicy?.terms && (
+                <div className="space-y-2 p-2.5 rounded-sm bg-black border border-zinc-900 text-[9px] font-mono text-zinc-400 leading-normal">
+                  <div className="text-gold-300 font-bold mb-1 uppercase tracking-wider">{privacyPolicy.compliance} - {privacyPolicy.guarantee}</div>
+                  {privacyPolicy.terms.map((term, i) => (
+                    <div key={i} className="flex gap-1.5 items-start">
+                      <span className="text-gold-400 text-xs shadow-sm">✓</span>
+                      <span>{term}</span>
+                    </div>
+                  ))}
+                  <div className="text-zinc-600 mt-1 pl-3 text-[8.5px] italic">
+                    {privacyPolicy.exemptions}
+                  </div>
+                </div>
+              )}
             </section>
 
             {/* BRING YOUR OWN AD PROVIDER FORM */}

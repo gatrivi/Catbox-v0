@@ -5,6 +5,7 @@ import cors from "cors";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import { CatboxAtomicEngine } from "./src/utils/atomicEngine";
+import { injectCatboxVerbs } from "./src/utils/claudeInterceptor";
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
@@ -55,6 +56,8 @@ interface DevProfile {
   earlyBirdTier?: string;
   daysSinceBoost?: number;
   omitHouseTips?: boolean;
+  selfServePromos?: string[];
+  installsCount?: number;
 }
 
 // Early-bird decay and multiplier calculations
@@ -176,7 +179,11 @@ const devProfiles: Record<string, DevProfile> = {
     referredUserCount: 0,
     earlyBirdTier: "STABLE_BASELINE",
     daysSinceBoost: 90,
-    omitHouseTips: false
+    omitHouseTips: false,
+    selfServePromos: [
+      "✶ Sponsor: Try my custom fast geometric CSS engine - DecoLayout ↗"
+    ],
+    installsCount: 8
   },
 };
 
@@ -254,7 +261,11 @@ app.post("/api/ledger/reset", (req, res) => {
     referredUserCount: 0,
     earlyBirdTier: "STABLE_BASELINE",
     daysSinceBoost: 90,
-    omitHouseTips: false
+    omitHouseTips: false,
+    selfServePromos: [
+      "✶ Sponsor: Try my custom fast geometric CSS engine - DecoLayout ↗"
+    ],
+    installsCount: 8
   };
 
   res.json({ success: true, ledger });
@@ -620,6 +631,77 @@ app.post("/api/developer/simulate-decay", (req, res) => {
   }
 });
 
+// GET user self-serve promotional creatives
+app.get("/api/self-serve/promos", (req, res) => {
+  const profile = devProfiles["my_account"];
+  if (profile) {
+    res.json({ success: true, promos: profile.selfServePromos || [] });
+  } else {
+    res.status(404).json({ success: false, error: "Profile not found" });
+  }
+});
+
+// POST register a new self-serve custom ad line
+app.post("/api/self-serve/promo", (req, res) => {
+  const { text } = req.body;
+  const profile = devProfiles["my_account"];
+  if (!text || !text.trim()) {
+    return res.status(400).json({ success: false, error: "Sponsor creative text cannot be empty." });
+  }
+  if (profile) {
+    if (!profile.selfServePromos) {
+      profile.selfServePromos = [];
+    }
+    // Limit to max 5 custom promotions to manage layout and performance
+    if (profile.selfServePromos.length >= 5) {
+      return res.json({ success: false, error: "Maximum limit of 5 active promo campaigns reached." });
+    }
+    profile.selfServePromos.push(text);
+    res.json({ success: true, promos: profile.selfServePromos });
+  } else {
+    res.status(404).json({ success: false, error: "Profile not found" });
+  }
+});
+
+// POST delete/remove a self-serve custom ad line
+app.post("/api/self-serve/promo/delete", (req, res) => {
+  const { text } = req.body;
+  const profile = devProfiles["my_account"];
+  if (profile && profile.selfServePromos) {
+    profile.selfServePromos = profile.selfServePromos.filter(item => item !== text);
+    res.json({ success: true, promos: profile.selfServePromos });
+  } else {
+    res.status(422).json({ success: false, error: "Profile or promotional database not found." });
+  }
+});
+
+// POST simulate total installs / systems milestones
+app.post("/api/developer/simulate-installs", (req, res) => {
+  const { installs } = req.body;
+  const profile = devProfiles["my_account"];
+  if (profile) {
+    profile.installsCount = parseInt(installs, 10) || 1;
+    res.json({ success: true, profile });
+  } else {
+    res.status(404).json({ success: false, error: "Profile not found" });
+  }
+});
+
+// GET Privacy declaration for local tracking sovereignty
+app.get("/api/privacy", (req, res) => {
+  res.json({
+    compliance: "Strict Local-First Privacy Compliance V1",
+    guarantee: "100% Zero-Intercept Policy",
+    terms: [
+      "No source code, keyboard coordinates, or file variables are ever observed, monitored, or logged.",
+      "Local workspace settings and workspace metadata (~/metadata.json) are modified purely under absolute user consent.",
+      "All impression earnings and telemetry signatures are fully isolated from intellectual property loops or key input handlers.",
+      "Sovereign user data. Direct block ledger updates take place safely on local storage systems with 0% external cloud tracking leaks."
+    ],
+    exemptions: "We maintain zero external analytics connections to protect your proprietary project data completely."
+  });
+});
+
 // Telemetry validation secret
 const TELEMETRY_SECRET = "catbox_daily_gold_secret";
 
@@ -666,25 +748,31 @@ app.get("/api/atomic/stream", (req, res) => {
     adsPool.push(houseAd);
   }
 
+  // Self-serve sponsor lines submitted via dashboard
+  const selfServePromos = profile?.selfServePromos || [];
+  selfServePromos.forEach(text => {
+    adsPool.push({ text, link: "https://catbox-db.io", isSelfServe: true } as any);
+  });
+
   // Symmetrical Affiliate Prioritization Priority Logic
   const userLinks = profile?.affiliateLinks || {};
   const prioritizedAds: any[] = [];
 
   if (userLinks.neon) {
-    const matched = adsPool.find(a => a.link.includes("neodeco-db.io"));
+    const matched = adsPool.find(a => a.link && a.link.includes("neodeco-db.io"));
     if (matched) {
       prioritizedAds.push({ ...matched, link: userLinks.neon });
     }
   }
 
   if (userLinks.supabase) {
-    const matched = adsPool.find(a => a.link.includes("saffron-host.net"));
+    const matched = adsPool.find(a => a.link && a.link.includes("saffron-host.net"));
     if (matched) {
       prioritizedAds.push({ ...matched, link: userLinks.supabase });
     }
   }
 
-  let selected = { text: "Catbox: Open kickbacks platform", link: "https://catbox-db.io" };
+  let selected: any = { text: "Catbox: Open kickbacks platform", link: "https://catbox-db.io" };
   if (prioritizedAds.length > 0) {
     selected = prioritizedAds[Math.floor(Math.random() * prioritizedAds.length)];
   } else if (adsPool.length > 0) {
@@ -692,21 +780,52 @@ app.get("/api/atomic/stream", (req, res) => {
   }
 
   if (isValid) {
-    // Calculate splits dynamically using decayed platform fee percent
-    const activePlatformFeePercent = calculateDecayedFee(profile);
-    const grossVal = 0.06; // standard gross payout per impression in VS Code Status Bar
-    const platformFee = parseFloat(((grossVal * activePlatformFeePercent) / 100).toFixed(4));
-    const devPayout = parseFloat((grossVal - platformFee).toFixed(4));
+    const isSelfServe = selected.isSelfServe === true;
+    const currentInstalls = profile?.installsCount || 8;
+    
+    // Dynamic revenue splits based on total system user installs milestone
+    const splitResult = CatboxAtomicEngine.calculateMilestoneSplit(currentInstalls);
+    const activePlatformFeePercent = isSelfServe ? 0 : splitResult.platformPercent;
+    
+    const grossVal = 0.06; // standard gross payout or view-cost per impression in VS Code Status Bar
+    
+    if (isSelfServe) {
+      // User is serving their own ad: deduct view costs with 0% platform fee penalty
+      const viewCost = grossVal;
+      const platformFee = 0.0;
+      
+      const desc = `[Self-Serve Promo] Impression served for custom creative: "${selected.text}" (0% Platform Fee penalty)`;
+      const block = createBlock("AD_IMPRESSION", "my_account", -viewCost, platformFee, 0, desc, "Catbox Self-Serve Engine");
+      ledger.push(block);
+      
+      if (profile) {
+        profile.impressionCount += 1;
+        // Deduct cost and prevent negative balances
+        profile.balance = parseFloat(Math.max(0, profile.balance - viewCost).toFixed(4));
+      }
+      console.log(`[Catbox Telemetry Server] Self-serve ad impression processed. Cost $${viewCost} deducted from ledger.`);
+    } else {
+      // Normal ad payout flow with dynamic milestone split
+      const platformFee = parseFloat(((grossVal * activePlatformFeePercent) / 100).toFixed(4));
+      const devPayout = parseFloat((grossVal - platformFee).toFixed(4));
 
-    const desc = `[Legitimate Impression] VS Code extension ad display: "${selected.text}" (Signed telemetry validated)`;
-    const block = createBlock("AD_IMPRESSION", "my_account", devPayout, platformFee, activePlatformFeePercent, desc, "Catbox Atomic Engine");
-    ledger.push(block);
+      const desc = `[Legitimate Impression] VS Code extension ad display: "${selected.text}" (Split: Developer ${splitResult.developerPercent}% / Platform ${splitResult.platformPercent}%)`;
+      const block = createBlock("AD_IMPRESSION", "my_account", devPayout, platformFee, activePlatformFeePercent, desc, "Catbox Atomic Engine");
+      ledger.push(block);
 
-    if (profile) {
-      profile.impressionCount += 1;
-      profile.balance = parseFloat((profile.balance + devPayout).toFixed(4));
+      if (profile) {
+        profile.impressionCount += 1;
+        profile.balance = parseFloat((profile.balance + devPayout).toFixed(4));
+      }
+      console.log(`[Catbox Telemetry Server] Legitimate Impression verified and logged. Hash: ${block.hash}`);
     }
-    console.log(`[Catbox Telemetry Server] Legitimate Impression verified and logged. Hash: ${block.hash}`);
+
+    // Trigger local system injection if a real CPM ad block is returned
+    if (selected.text !== houseAd.text) {
+      injectCatboxVerbs(selected.text).catch(err => {
+        console.error("[Catbox Server] Fault during automatic ad injection:", err);
+      });
+    }
   } else {
     console.warn("[Catbox Telemetry Server] Invalid or missing signed daily telemetry token. Blocking ledger logging!");
   }

@@ -36,5 +36,7 @@ export interface DevProfile {
   earlyBirdTier?: string;
   daysSinceBoost?: number;
   omitHouseTips?: boolean;
+  selfServePromos?: string[];
+  installsCount?: number;
 }
 

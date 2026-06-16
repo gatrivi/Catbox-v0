@@ -2,5 +2,12 @@
   "name": "Catbox",
   "description": "An open stained-glass art deco alternative to kickbacks.ai featuring golden accents, transparent ad partnerships, custom profit splits, Bring Your Own Provider rewards, and real-time ledger auditing.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"],
+  "CATBOX_PUB_ID": "pub_my_dev_account",
+  "CATBOX_WALLET": "cat_0x88fA77cc3c41ea99A",
+  "targetConfiguration": {
+    "enabled": false,
+    "defaultProvider": "Catbox Atomic Engine",
+    "trackingAllowed": true
+  }
 }

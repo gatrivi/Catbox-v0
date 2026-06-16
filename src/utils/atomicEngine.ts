@@ -155,6 +155,23 @@ export class CatboxAtomicEngine {
   }
 
   /**
+   * Calculates current dynamic revenue splits based on total system user installs/milestones.
+   * @param installsCount Total system-wide installs / user milestone count
+   * @returns An object containing the developer payout percentage and the platform's cut percentage.
+   */
+  public static calculateMilestoneSplit(installsCount: number): { developerPercent: number; platformPercent: number } {
+    if (installsCount <= 10) {
+      return { developerPercent: 97, platformPercent: 3 };
+    } else if (installsCount <= 100) {
+      return { developerPercent: 95, platformPercent: 5 };
+    } else if (installsCount <= 1000) {
+      return { developerPercent: 90, platformPercent: 10 };
+    } else {
+      return { developerPercent: 85, platformPercent: 15 };
+    }
+  }
+
+  /**
    * Starts the standalone ad brokerage socket server on port 5176
    */
   public startIsolatedServer(port: number = 5176) {

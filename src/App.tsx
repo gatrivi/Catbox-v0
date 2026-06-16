@@ -30,6 +30,30 @@ import { Block, DevProfile, AdProvider } from "./types";
 import stainedGlassCarrier from "./assets/images/stained_glass_carrier_1781572789207.jpg";
 
 export default function App() {
+  // Client-Side light state router driven by window.location.hash
+  const [currentRoute, setCurrentRoute] = useState<string>("landing");
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash || "#/";
+      if (hash === "#/dashboard") {
+        setCurrentRoute("dashboard");
+      } else if (hash === "#/cli") {
+        setCurrentRoute("cli");
+      } else if (hash === "#/ledger") {
+        setCurrentRoute("ledger");
+      } else if (hash === "#/privacy") {
+        setCurrentRoute("privacy");
+      } else {
+        setCurrentRoute("landing");
+      }
+    };
+
+    handleHashChange(); // Sync initial mount
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
   // Pane Toggles (All panes can be hidden)
   const [showLeftPane, setShowLeftPane] = useState(true);
   const [showCenterPane, setShowCenterPane] = useState(true);
@@ -55,6 +79,19 @@ export default function App() {
   const [ledger, setLedger] = useState<Block[]>([]);
   const [providers, setProviders] = useState<AdProvider[]>([]);
   
+  // Interactive checklist states for Getting Started List
+  const [completedSteps, setCompletedSteps] = useState<{ [key: string]: boolean }>({
+    "step-concepts": true,
+    "step-sim": false,
+    "step-promo": false,
+    "step-escrow": false,
+    "step-vscode": false,
+  });
+
+  const toggleChecklistStep = (key: string) => {
+    setCompletedSteps(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
   // Interaction and Form States
   const [loadingAd, setLoadingAd] = useState(false);
   const [actionType, setActionType] = useState<"IMPRESSION" | "CLICK">("IMPRESSION");
@@ -553,55 +590,77 @@ export default function App() {
         </div>
       </header>
 
-      {/* Pane Toggles Strip - Directly answers: "All panes can be hidden" */}
-      <section className="bg-zinc-950 border-b border-gold-900/40 px-8 py-2.5">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] uppercase font-mono tracking-widest text-zinc-500">
-              HUD Controls:
+      {/* Dynamic Golden Route Tabs Navigation */}
+      <section className="bg-zinc-950 border-b-2 border-gold-600 px-8 py-3.5 relative">
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-gold-550 to-transparent"></div>
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="font-deco text-[11px] text-gold-400 uppercase tracking-widest font-bold">
+              Navigate System:
             </span>
-            <div className="h-4 border-l border-zinc-800"></div>
-            <span className="text-xs text-gold-400/80 font-mono">
-              Toggle Panels to customize your code dashboard layout ({activePanesCount} open)
-            </span>
+            <div className="h-4 border-l border-gold-800"></div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => setShowLeftPane(!showLeftPane)}
-              className={`px-3 py-1 text-[10px] font-mono rounded uppercase transition-all flex items-center gap-1.5 border ${
-                showLeftPane 
-                  ? "bg-gold-950/50 text-gold-400 border-gold-600" 
-                  : "bg-black text-zinc-650 border-zinc-800"
+          <nav className="flex flex-wrap items-center gap-2">
+            <a
+              href="#/"
+              className={`px-3.5 py-1.5 text-xs font-mono rounded uppercase transition-all tracking-wider border cursor-pointer ${
+                currentRoute === "landing"
+                  ? "bg-gold-500 text-black border-gold-400 font-bold shadow-[0_0_10px_rgba(194,147,52,0.3)] hover:bg-gold-400"
+                  : "bg-black text-zinc-400 border-zinc-900 hover:text-gold-300 hover:border-gold-850"
               }`}
             >
-              {showLeftPane ? <Eye className="w-3.5 h-3.5 text-gold-400" /> : <EyeOff className="w-3.5 h-3.5 text-zinc-600" />}
-              <span>Ad Setup ({showLeftPane ? "Show" : "Hide"})</span>
-            </button>
+              🌟 Getting Started
+            </a>
 
-            <button
-              onClick={() => setShowCenterPane(!showCenterPane)}
-              className={`px-3 py-1 text-[10px] font-mono rounded uppercase transition-all flex items-center gap-1.5 border ${
-                showCenterPane 
-                  ? "bg-gold-950/50 text-gold-400 border-gold-600" 
-                  : "bg-black text-zinc-650 border-zinc-800"
+            <a
+              href="#/dashboard"
+              className={`px-3.5 py-1.5 text-xs font-mono rounded uppercase transition-all tracking-wider border cursor-pointer ${
+                currentRoute === "dashboard"
+                  ? "bg-gold-500 text-black border-gold-400 font-bold shadow-[0_0_10px_rgba(194,147,52,0.3)] hover:bg-gold-400"
+                  : "bg-black text-zinc-400 border-zinc-900 hover:text-gold-300 hover:border-gold-850"
               }`}
             >
-              {showCenterPane ? <Eye className="w-3.5 h-3.5 text-gold-400" /> : <EyeOff className="w-3.5 h-3.5 text-zinc-600" />}
-              <span>Interactive CLI ({showCenterPane ? "Show" : "Hide"})</span>
-            </button>
+              ⚙️ Provider Dashboard
+            </a>
 
-            <button
-              onClick={() => setShowRightPane(!showRightPane)}
-              className={`px-3 py-1 text-[10px] font-mono rounded uppercase transition-all flex items-center gap-1.5 border ${
-                showRightPane 
-                  ? "bg-gold-950/50 text-gold-400 border-gold-600" 
-                  : "bg-black text-zinc-650 border-zinc-800"
+            <a
+              href="#/cli"
+              className={`px-3.5 py-1.5 text-xs font-mono rounded uppercase transition-all tracking-wider border cursor-pointer ${
+                currentRoute === "cli"
+                  ? "bg-gold-500 text-black border-gold-400 font-bold shadow-[0_0_10px_rgba(194,147,52,0.3)] hover:bg-gold-400"
+                  : "bg-black text-zinc-400 border-zinc-900 hover:text-gold-300 hover:border-gold-850"
               }`}
             >
-              {showRightPane ? <Eye className="w-3.5 h-3.5 text-gold-400" /> : <EyeOff className="w-3.5 h-3.5 text-zinc-600" />}
-              <span>Ledger & Escrow ({showRightPane ? "Show" : "Hide"})</span>
-            </button>
+              🖥️ Interactive CLI
+            </a>
+
+            <a
+              href="#/ledger"
+              className={`px-3.5 py-1.5 text-xs font-mono rounded uppercase transition-all tracking-wider border cursor-pointer ${
+                currentRoute === "ledger"
+                  ? "bg-gold-500 text-black border-gold-400 font-bold shadow-[0_0_10px_rgba(194,147,52,0.3)] hover:bg-gold-400"
+                  : "bg-black text-zinc-400 border-zinc-900 hover:text-gold-300 hover:border-gold-850"
+              }`}
+            >
+              🔗 Ledger & Escrow
+            </a>
+
+            <a
+              href="#/privacy"
+              className={`px-3.5 py-1.5 text-xs font-mono rounded uppercase transition-all tracking-wider border cursor-pointer ${
+                currentRoute === "privacy"
+                  ? "bg-gold-500 text-black border-gold-400 font-bold shadow-[0_0_10px_rgba(194,147,52,0.3)] hover:bg-gold-400"
+                  : "bg-black text-zinc-400 border-zinc-900 hover:text-gold-300 hover:border-gold-850"
+              }`}
+            >
+              🛡️ Sovereign Privacy
+            </a>
+          </nav>
+
+          <div className="text-[10px] text-zinc-400 font-mono flex items-center gap-1.5 bg-black px-2.5 py-1 rounded border border-zinc-900">
+            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+            <span>Route: <strong className="text-gold-400">/{currentRoute === "landing" ? "" : currentRoute}</strong></span>
           </div>
         </div>
       </section>
@@ -683,15 +742,211 @@ export default function App() {
       {/* Main Container - Collapsible Grid */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-12 gap-6 items-start">
         
-        {/* Left Sidebar - Bring Your Own Provider & Custom split configurations */}
-        {showLeftPane && (
-          <aside className={`${
-            activePanesCount === 1 
-              ? "col-span-12" 
-              : activePanesCount === 2 
-                ? "col-span-12 lg:col-span-4" 
-                : "col-span-12 lg:col-span-4 xl:col-span-3"
-          } space-y-6 animate-fade-in`}>
+        {/* 🌟 ROUTE 1: Landing Page */}
+        {currentRoute === "landing" && (
+          <div className="col-span-12 space-y-8 animate-fade-in text-zinc-100">
+            {/* Visual Hero Box */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center bg-zinc-950 p-6 md:p-8 border-2 border-double border-gold-500 rounded-sm relative">
+              <div className="absolute top-0 right-10 w-24 h-1 bg-gradient-to-r from-gold-600 to-gold-400"></div>
+              
+              <div className="md:col-span-7 space-y-4">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-gold-950/40 border border-gold-800 rounded">
+                  <Sparkles className="w-3.5 h-3.5 text-gold-400 animate-pulse" />
+                  <span className="text-[9px] uppercase tracking-widest font-mono text-gold-300">
+                    Sovereign Kickbacks Alternative
+                  </span>
+                </div>
+                
+                <h1 className="font-deco text-3xl md:text-4xl font-extrabold tracking-tight text-white leading-none">
+                  TRANSPARENT REVENUE <br/>
+                  <span className="text-gold-400">FOR HARDWORKING DEVS</span>
+                </h1>
+                
+                <p className="text-xs text-zinc-400 leading-relaxed max-w-xl">
+                  Catbox is a decentralized, local-first brokerage alternative designed to reward software builders. By connecting your local environment or custom ad servers, you earn fully audited splits with zero keystroke logging or third-party monitoring.
+                </p>
+
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <a
+                    href="#/dashboard"
+                    className="px-5 py-2.5 bg-gradient-to-r from-gold-605 to-gold-400 hover:from-gold-500 hover:to-gold-300 text-zinc-950 font-bold text-xs uppercase tracking-wider rounded-sm transition-all flex items-center gap-2 cursor-pointer shadow-md"
+                  >
+                    Configure Broker
+                    <ExternalLink className="w-3.5 h-3.5 text-zinc-950" />
+                  </a>
+                  <a
+                    href="#/cli"
+                    className="px-5 py-2.5 bg-black hover:bg-zinc-900 text-gold-400 border border-gold-800 text-xs font-bold uppercase tracking-wider rounded-sm transition-all cursor-pointer"
+                  >
+                    Simulate Live Feed
+                  </a>
+                </div>
+              </div>
+
+              {/* Decorative Stained-glass side cover */}
+              <div className="md:col-span-5 relative border-4 border-double border-gold-700/60 p-4 rounded bg-black flex flex-col justify-between min-h-[220px] shadow-lg">
+                <div className="space-y-2">
+                  <div className="text-[10px] font-mono text-gold-300 uppercase tracking-widest flex items-center gap-1.5">• Real-time Ledger Signature</div>
+                  <div className="p-2.5 rounded bg-zinc-950 border border-zinc-90 w-full font-mono text-[9.5px] text-zinc-400 space-y-1">
+                    <p className="text-white">{"{"}</p>
+                    <p className="pl-4">"protocol": "CATBOX_ATOMIC_VAL_V1",</p>
+                    <p className="pl-4">"active_split": "15%_PLATFORM_CUT",</p>
+                    <p className="pl-4">"balance_usd": <span className="text-gold-300 font-bold">"${profile.balance.toFixed(4)}"</span></p>
+                    <p className="text-white">{"}"}</p>
+                  </div>
+                </div>
+                <div className="text-[8px] font-mono text-zinc-650 uppercase tracking-wider text-right">
+                  SECURE CRYPTO VAULT DISPATCHED ON LOCAL STORAGE
+                </div>
+              </div>
+            </div>
+
+            {/* How It Works Segment */}
+            <div className="space-y-4">
+              <div className="border-b border-gold-900/60 pb-2">
+                <h3 className="font-deco text-xs text-gold-300 uppercase tracking-widest flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-gold-400" />
+                  How Catbox Architecture Works
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-zinc-950 p-5 rounded-sm border border-gold-900/40 relative space-y-2">
+                  <div className="text-gold-400 font-serif italic text-3xl font-extrabold absolute top-2 right-4 opacity-20">01</div>
+                  <h4 className="font-serif text-gold-300 text-xs font-bold uppercase tracking-wider">Configure Ad Server</h4>
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    Choose from standard providers, configure your custom affiliate override links, or plug in a completely independent third-party ad network.
+                  </p>
+                </div>
+
+                <div className="bg-zinc-950 p-5 rounded-sm border border-gold-900/40 relative space-y-2">
+                  <div className="text-gold-400 font-serif italic text-3xl font-extrabold absolute top-2 right-4 opacity-20">02</div>
+                  <h4 className="font-serif text-gold-300 text-xs font-bold uppercase tracking-wider">Zero-Intercept Stream</h4>
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    The local code extension listens strictly to direct ad streams via a verified REST gateway. No proprietary code files are ever read or reported.
+                  </p>
+                </div>
+
+                <div className="bg-zinc-950 p-5 rounded-sm border border-gold-900/40 relative space-y-2">
+                  <div className="text-gold-400 font-serif italic text-3xl font-extrabold absolute top-2 right-4 opacity-20">03</div>
+                  <h4 className="font-serif text-gold-300 text-xs font-bold uppercase tracking-wider">Verifiable Ledger Payout</h4>
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    Every ad view is signed as a decentralized block transaction. Once validated, withdraw your accumulated balances via secure Stripe Escrow.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* GETTING STARTED checklist (Interactive) */}
+            <div className="bg-zinc-950 p-6 border border-zinc-800 rounded-sm space-y-5">
+              <div>
+                <h3 className="font-deco text-sm font-bold text-gold-300 uppercase tracking-widest flex items-center gap-2">
+                  <Check className="w-4 h-4 text-gold-400" />
+                  Your Getting Started Checklist
+                </h3>
+                <p className="text-[11px] text-zinc-500 mt-1">
+                  Interact with each task to complete your local setup and test the core brokerage loop.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {/* Checklist item 1 */}
+                <div 
+                  onClick={() => toggleChecklistStep("step-concepts")}
+                  className="flex items-start gap-3.5 p-3.5 bg-black border border-zinc-905 rounded hover:border-gold-800/40 transition-all cursor-pointer select-none"
+                >
+                  <div className={`mt-0.5 shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-all ${completedSteps["step-concepts"] ? 'bg-gold-505 border-gold-400 text-black' : 'border-zinc-800 bg-zinc-950'}`}>
+                    {completedSteps["step-concepts"] && <Check className="w-3 h-3 stroke-[3px]" />}
+                  </div>
+                  <div className="space-y-1">
+                    <div className={`text-xs font-semibold uppercase tracking-wider ${completedSteps["step-concepts"] ? 'text-zinc-500 line-through' : 'text-gold-300'}`}>
+                      1. Explore Ad Setup & Providers
+                    </div>
+                    <p className="text-[10.5px] text-zinc-500 leading-normal">
+                      Visit the <span className="text-gold-400/80 font-mono">Provider Dashboard</span> tab to customize platform split ratios, register custom direct ad keys, or configure affiliate links.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Checklist item 2 */}
+                <div 
+                  onClick={() => toggleChecklistStep("step-sim")}
+                  className="flex items-start gap-3.5 p-3.5 bg-black border border-zinc-905 rounded hover:border-gold-800/40 transition-all cursor-pointer select-none"
+                >
+                  <div className={`mt-0.5 shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-all ${completedSteps["step-sim"] ? 'bg-gold-505 border-gold-400 text-black' : 'border-zinc-800 bg-zinc-950'}`}>
+                    {completedSteps["step-sim"] && <Check className="w-3 h-3 stroke-[3px]" />}
+                  </div>
+                  <div className="space-y-1">
+                    <div className={`text-xs font-semibold uppercase tracking-wider ${completedSteps["step-sim"] ? 'text-zinc-500 line-through' : 'text-gold-300'}`}>
+                      2. Run the Interactive Simulation Terminal
+                    </div>
+                    <p className="text-[10.5px] text-zinc-500 leading-normal">
+                      Head to the <span className="text-gold-400/80 font-mono">Interactive CLI</span>. Trigger a manual terminal impression or custom ad click to watch real-time events fire and trace telemetry logs.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Checklist item 3 */}
+                <div 
+                  onClick={() => toggleChecklistStep("step-promo")}
+                  className="flex items-start gap-3.5 p-3.5 bg-black border border-zinc-905 rounded hover:border-gold-800/40 transition-all cursor-pointer select-none"
+                >
+                  <div className={`mt-0.5 shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-all ${completedSteps["step-promo"] ? 'bg-gold-505 border-gold-400 text-black' : 'border-zinc-800 bg-zinc-950'}`}>
+                    {completedSteps["step-promo"] && <Check className="w-3 h-3 stroke-[3px]" />}
+                  </div>
+                  <div className="space-y-1">
+                    <div className={`text-xs font-semibold uppercase tracking-wider ${completedSteps["step-promo"] ? 'text-zinc-500 line-through' : 'text-gold-300'}`}>
+                      3. Create a Self-Serve Custom Ad Campaign
+                    </div>
+                    <p className="text-[10.5px] text-zinc-500 leading-normal">
+                      Submit your own promotional ad copy in the Provider Dashboard. Self-serve campaigns run at exact wholesale values with 100% of platform fee cuts entirely waived.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Checklist item 4 */}
+                <div 
+                  onClick={() => toggleChecklistStep("step-escrow")}
+                  className="flex items-start gap-3.5 p-3.5 bg-black border border-zinc-905 rounded hover:border-gold-800/40 transition-all cursor-pointer select-none"
+                >
+                  <div className={`mt-0.5 shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-all ${completedSteps["step-escrow"] ? 'bg-gold-505 border-gold-400 text-black' : 'border-zinc-800 bg-zinc-950'}`}>
+                    {completedSteps["step-escrow"] && <Check className="w-3 h-3 stroke-[3px]" />}
+                  </div>
+                  <div className="space-y-1">
+                    <div className={`text-xs font-semibold uppercase tracking-wider ${completedSteps["step-escrow"] ? 'text-zinc-500 line-through' : 'text-gold-300'}`}>
+                      4. Auditing Multi-party Ledger Transactions & Escrow
+                    </div>
+                    <p className="text-[10.5px] text-zinc-550 leading-normal">
+                      Access <span className="text-gold-400/80 font-mono">Ledger & Escrow</span> to verify secure encryption of developer payout credentials and audit cryptographic block ledgers manually.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Checklist item 5 */}
+                <div 
+                  onClick={() => toggleChecklistStep("step-vscode")}
+                  className="flex items-start gap-3.5 p-3.5 bg-black border border-zinc-905 rounded hover:border-gold-800/40 transition-all cursor-pointer select-none"
+                >
+                  <div className={`mt-0.5 shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-all ${completedSteps["step-vscode"] ? 'bg-gold-505 border-gold-400 text-black' : 'border-zinc-800 bg-zinc-950'}`}>
+                    {completedSteps["step-vscode"] && <Check className="w-3 h-3 stroke-[3px]" />}
+                  </div>
+                  <div className="space-y-1">
+                    <div className={`text-xs font-semibold uppercase tracking-wider ${completedSteps["step-vscode"] ? 'text-zinc-500 line-through' : 'text-gold-300'}`}>
+                      5. Boot the Local VS Code Status Bar Extension
+                    </div>
+                    <p className="text-[10.5px] text-zinc-550 leading-normal">
+                      Compile and load the VS Code extension folder inside your native editor to display live micro-earnings directly in your IDE Status Bar.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ⚙️ ROUTE 2: Provider Dashboard Setup */}
+        {currentRoute === "dashboard" && (
+          <aside className="col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6 items-start animate-fade-in">
 
             {/* Pane Label */}
             <div className="flex items-center justify-between border-b-2 border-gold-600 pb-1.5">
@@ -1182,15 +1437,9 @@ export default function App() {
           </aside>
         )}
 
-        {/* Center Console - Main display screen, dynamic logs, CLI customization & click simulator */}
-        {showCenterPane && (
-          <section className={`${
-            activePanesCount === 1 
-              ? "col-span-12" 
-              : activePanesCount === 2 
-                ? "col-span-12 lg:col-span-8" 
-                : "col-span-12 lg:col-span-8 xl:col-span-6"
-          } space-y-6 animate-fade-in`}>
+        {/* 🖥️ ROUTE 3: Interactive CLI simulation focus screen */}
+        {currentRoute === "cli" && (
+          <section className="col-span-12 space-y-6 animate-fade-in">
 
             {/* Pane Label */}
             <div className="flex items-center justify-between border-b-2 border-gold-605 pb-1.5">
@@ -1478,15 +1727,9 @@ export default function App() {
           </section>
         )}
 
-        {/* Right Sidebar - Blockchain Transaction Ledger Log & Escrow Release Portal */}
-        {showRightPane && (
-          <aside className={`${
-            activePanesCount === 1 
-              ? "col-span-12" 
-              : activePanesCount === 2 
-                ? "col-span-12 lg:col-span-4" 
-                : "col-span-12 lg:col-span-4 xl:col-span-3"
-          } space-y-6 animate-fade-in`}>
+        {/* 🔗 ROUTE 4: Decentralized Cryptographic Ledger & Escrow Auditing */}
+        {currentRoute === "ledger" && (
+          <aside className="col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6 items-start animate-fade-in">
 
             {/* Pane Label */}
             <div className="flex items-center justify-between border-b-2 border-gold-600 pb-1.5">
@@ -1617,6 +1860,50 @@ export default function App() {
             </section>
 
           </aside>
+        )}
+
+        {/* 🛡️ ROUTE 5: Sovereign Privacy Policy */}
+        {currentRoute === "privacy" && (
+          <div className="col-span-12 space-y-6 animate-fade-in">
+            <div className="bg-zinc-950 p-8 border border-gold-800 rounded-sm relative space-y-6 text-zinc-100">
+              <div className="absolute top-0 right-10 w-24 h-1 bg-gold-400"></div>
+              
+              <div className="space-y-2 border-b border-zinc-900 pb-4">
+                <h2 className="font-deco text-sm font-bold text-gold-300 uppercase tracking-widest flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-gold-400 animate-pulse" />
+                  Local-First Sovereignty Guarantee
+                </h2>
+                <p className="text-[11.5px] text-zinc-400 leading-normal">
+                  Our privacy policies are processed live from our secure metadata gateways to guarantee 100% telemetry protection.
+                </p>
+              </div>
+
+              {privacyPolicy?.terms && (
+                <div className="space-y-4 p-5 rounded bg-black border border-zinc-900 w-full font-mono text-xs text-zinc-305 leading-relaxed">
+                  <div className="text-gold-300 font-bold mb-2 uppercase tracking-wide text-xs">{privacyPolicy.compliance}</div>
+                  <div className="text-zinc-400 font-semibold mb-4 leading-normal">{privacyPolicy.guarantee}</div>
+                  
+                  <div className="space-y-3 pt-2">
+                    {privacyPolicy.terms.map((term, i) => (
+                      <div key={i} className="flex gap-2.5 items-start">
+                        <span className="text-gold-400 text-sm shadow-sm select-none">✓</span>
+                        <span>{term}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="text-zinc-500 mt-6 pl-4 border-l border-gold-850/40 text-[11px] italic">
+                    {privacyPolicy.exemptions}
+                  </div>
+                </div>
+              )}
+
+              <div className="p-4 bg-black border border-zinc-900 rounded text-xs text-zinc-500 font-sans leading-relaxed">
+                <h4 className="text-zinc-300 uppercase tracking-wide font-semibold text-[11px] mb-1">Verifiable Local Governance</h4>
+                <p>This workspace operates on direct peer-to-peer verification schemas. We strictly disallow the storage, recording, or proxy analysis of keyboard buffers, layout variables, or code comments. Safe cryptographic signatures take place natively, fully aligning with continuous SOC2 standard parameters.</p>
+              </div>
+            </div>
+          </div>
         )}
 
       </main>

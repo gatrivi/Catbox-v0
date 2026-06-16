@@ -1,0 +1,61 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800&family=Playfair+Display:ital,wght@0,500;0,700;1,400&family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Playfair Display", serif;
+  --font-deco: "Cinzel", serif;
+  --font-sans: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  
+  --color-gold-50: #fbf7ee;
+  --color-gold-100: #f5edd6;
+  --color-gold-200: #ebd8aa;
+  --color-gold-300: #dec17c;
+  --color-gold-400: #d0aa53;
+  --color-gold-500: #c29334;
+  --color-gold-600: #a37526;
+  --color-gold-700: #80571c;
+  --color-gold-800: #5e3c15;
+  --color-gold-900: #3f260f;
+  --color-gold-950: #251406;
+}
+
+/* Custom Art Deco visual layout decorations */
+.deco-border {
+  border: 1px solid var(--color-gold-500);
+  box-shadow: 0 0 1px 1px rgba(194, 147, 52, 0.2);
+}
+
+.deco-border-double {
+  border: 3px double var(--color-gold-500);
+}
+
+.deco-gradient-gold {
+  background: linear-gradient(135deg, #ebd8aa 0%, #c29334 50%, #80571c 100%);
+}
+
+.deco-gold-text {
+  background: linear-gradient(135deg, #f5edd6 0%, #d0aa53 60%, #80571c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.deco-line-through {
+  background-image: linear-gradient(to right, transparent, var(--color-gold-600), transparent);
+  height: 1px;
+}
+
+/* Elegant custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #09090b;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-gold-800);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold-500);
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Cattbacks",
+  "description": "An open art deco alternative to kickbacks.ai featuring golden accents, transparent ad partnerships, custom profit shares, Bring Your Own Provider rewards, and real-time ledger auditing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,162 @@
+[
+  {
+    "id": "aurum_auth_1",
+    "brand": "Aurum Auth",
+    "creativeText": "Secure your routes elegantly with Aurum Auth. Get 20% off with promo code CATTBACKS",
+    "baseUrl": "https://aurum-auth.io/ref=catbox",
+    "cpm": 10.0,
+    "category": "auth"
+  },
+  {
+    "id": "aurum_auth_2",
+    "brand": "Aurum Auth",
+    "creativeText": "Zero-knowledge JWT session validation via Aurum Auth. Lightning fast edge runtime integration.",
+    "baseUrl": "https://aurum-auth.io/jwt",
+    "cpm": 10.0,
+    "category": "auth"
+  },
+  {
+    "id": "aurum_auth_3",
+    "brand": "Aurum Auth",
+    "creativeText": "Ditch password fatigue. Enable biometrics in 3 lines of code with Aurum Auth SDK.",
+    "baseUrl": "https://aurum-auth.io/biometrics",
+    "cpm": 10.0,
+    "category": "auth"
+  },
+  {
+    "id": "securite_vault_1",
+    "brand": "Securite Vault",
+    "creativeText": "Keep secret keys out of plain code. Encrypt environment variables with Securite Vault.",
+    "baseUrl": "https://securite-vault.io/env",
+    "cpm": 10.0,
+    "category": "auth"
+  },
+  {
+    "id": "securite_vault_2",
+    "brand": "Securite Vault",
+    "creativeText": "Prevent credentials sprawl. Rotate database passwords automatically using Securite Vault CLI.",
+    "baseUrl": "https://securite-vault.io/cli",
+    "cpm": 10.0,
+    "category": "auth"
+  },
+  {
+    "id": "securite_vault_3",
+    "brand": "Securite Vault",
+    "creativeText": "CSPRNG cryptographically isolated key injection at compile time with Securite Vault.",
+    "baseUrl": "https://securite-vault.io/csprng",
+    "cpm": 10.0,
+    "category": "auth"
+  },
+  {
+    "id": "neodeco_db_1",
+    "brand": "NeoDeco DB",
+    "creativeText": "Accelerate postgres queries by 10x using NeoDeco DB geometric visual indexing.",
+    "baseUrl": "https://neodeco-db.io/postgres",
+    "cpm": 10.0,
+    "category": "database"
+  },
+  {
+    "id": "neodeco_db_2",
+    "brand": "NeoDeco DB",
+    "creativeText": "NeoDeco DB: The ultimate ACID compliant relational store for neo-classical developers.",
+    "baseUrl": "https://neodeco-db.io/acid",
+    "cpm": 10.0,
+    "category": "database"
+  },
+  {
+    "id": "neodeco_db_3",
+    "brand": "NeoDeco DB",
+    "creativeText": "Declarative migrations and real-time schema replication without downtime. Try NeoDeco DB.",
+    "baseUrl": "https://neodeco-db.io/migrations",
+    "cpm": 10.0,
+    "category": "database"
+  },
+  {
+    "id": "saffron_lint_1",
+    "brand": "Saffron Lint",
+    "creativeText": "Saffron Lint: Catch typescript leaks and rule of hooks violations in real time.",
+    "baseUrl": "https://saffron-lint.io/hooks",
+    "cpm": 10.0,
+    "category": "git"
+  },
+  {
+    "id": "saffron_lint_2",
+    "brand": "Saffron Lint",
+    "creativeText": "Pre-commit static analysis engine featuring zero configs. Upgrade to Saffron Lint today.",
+    "baseUrl": "https://saffron-lint.io/precommit",
+    "cpm": 10.0,
+    "category": "git"
+  },
+  {
+    "id": "saffron_lint_3",
+    "brand": "Saffron Lint",
+    "creativeText": "Reduce memory references and infinite rerender bugs with Saffron Lint CI integration.",
+    "baseUrl": "https://saffron-lint.io/ci",
+    "cpm": 10.0,
+    "category": "git"
+  },
+  {
+    "id": "decomail_1",
+    "brand": "DecoMail",
+    "creativeText": "Send millions of developer transactional emails via DecoMail SMTP endpoints for $0.",
+    "baseUrl": "https://decomail.app/free",
+    "cpm": 10.0,
+    "category": "email"
+  },
+  {
+    "id": "decomail_2",
+    "brand": "DecoMail",
+    "creativeText": "DecoMail: Typings-secure transactional emails with server side template compilation.",
+    "baseUrl": "https://decomail.app/typescript",
+    "cpm": 10.0,
+    "category": "email"
+  },
+  {
+    "id": "decomail_3",
+    "brand": "DecoMail",
+    "creativeText": "DKIM, SPF and DMARC verified in seconds. Streamline your email hooks with DecoMail API.",
+    "baseUrl": "https://decomail.app/security",
+    "cpm": 10.0,
+    "category": "email"
+  },
+  {
+    "id": "apex_analytics_1",
+    "brand": "Apex Analytics",
+    "creativeText": "Apex Analytics: Real-time user session replays, custom funnel tracking, and edge counts.",
+    "baseUrl": "https://apex-analytics.io/replays",
+    "cpm": 10.0,
+    "category": "analytics"
+  },
+  {
+    "id": "apex_analytics_2",
+    "brand": "Apex Analytics",
+    "creativeText": "No cookieless tracking blocks. Lightweight, compliant analytics via Apex Analytics dashboard.",
+    "baseUrl": "https://apex-analytics.io/privacy",
+    "cpm": 10.0,
+    "category": "analytics"
+  },
+  {
+    "id": "apex_analytics_3",
+    "brand": "Apex Analytics",
+    "creativeText": "Track clicks, core web vitals, and conversion triggers using Apex Analytics lightweight hook.",
+    "baseUrl": "https://apex-analytics.io/hooks-api",
+    "cpm": 10.0,
+    "category": "analytics"
+  },
+  {
+    "id": "stratus_cloud_1",
+    "brand": "Stratus Cloud",
+    "creativeText": "Deploy fullstack typescript containers globally under 2 seconds on Stratus Cloud.",
+    "baseUrl": "https://stratus-cloud.com/deploy",
+    "cpm": 10.0,
+    "category": "cloud"
+  },
+  {
+    "id": "stratus_cloud_2",
+    "brand": "Stratus Cloud",
+    "creativeText": "Durable block storage & serverless runtime scaling perfectly. Move to Stratus Cloud.",
+    "baseUrl": "https://stratus-cloud.com/storage",
+    "cpm": 10.0,
+    "category": "cloud"
+  }
+]

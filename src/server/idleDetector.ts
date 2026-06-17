@@ -17,6 +17,10 @@ let watcherInstance: any = null;
 const claudeDir = path.join(os.homedir(), ".claude");
 const transcriptPath = path.join(claudeDir, "transcript.json");
 
+const cursorDir = path.join(os.homedir(), ".cursor");
+const cursorTranscriptPath = path.join(cursorDir, "transcript.json");
+const cursorHistoryPath = path.join(cursorDir, "history.json");
+
 /**
  * Gets the current system idle state
  */
@@ -73,18 +77,30 @@ export async function triggerSelfHeal() {
 }
 
 /**
- * Force manual touch/activity simulation for debugging
+ * Force manual touch/activity simulation for debugging (both Claude & Cursor paths)
  */
 export async function simulateActivity() {
   updateActiveActivity();
+  const payload = JSON.stringify({ lastActivity: Date.now() });
+  
+  // Touch Claude
   try {
     await fs.promises.mkdir(claudeDir, { recursive: true });
-    // Touch file to trigger fs changewatcher
-    const payload = JSON.stringify({ lastActivity: Date.now() });
     await fs.promises.writeFile(transcriptPath, payload, "utf-8");
-    console.log(`[Idle Detector Tool] Manually touched transcript.json at ${transcriptPath}`);
+    console.log(`[Idle Detector Tool] Manually touched Claude transcript.json at ${transcriptPath}`);
   } catch (err: any) {
-    console.error(`[Idle Detector Tool] Failed to simulate activity: ${err.message}`);
+    console.error(`[Idle Detector Tool] Failed to simulate Claude activity: ${err.message}`);
+  }
+
+  // Touch Cursor
+  try {
+    await fs.promises.mkdir(cursorDir, { recursive: true });
+    await fs.promises.writeFile(cursorTranscriptPath, payload, "utf-8");
+    await fs.promises.writeFile(cursorHistoryPath, payload, "utf-8");
+    console.log(`[Idle Detector Tool] Manually touched Cursor transcript & history at ${cursorDir}`);
+  } catch (err: any) {
+    // Only warn/ignore since Cursor folder is extra fallback
+    console.log(`[Idle Detector Tool] Skipped optional Cursor write: ${err.message}`);
   }
 }
 
@@ -92,7 +108,7 @@ export async function simulateActivity() {
  * Initialize file watching and the background timer event loop
  */
 export async function initializeIdleDetector() {
-  // Ensure .claude folder and transcript.json exist
+  // Ensure folders and files exist for reliable watching
   try {
     if (!fs.existsSync(claudeDir)) {
       fs.mkdirSync(claudeDir, { recursive: true });
@@ -101,40 +117,54 @@ export async function initializeIdleDetector() {
       fs.writeFileSync(transcriptPath, JSON.stringify({ lastActivity: Date.now() }), "utf-8");
     }
   } catch (err: any) {
-    console.warn(`[Idle Detector Setup] Initial workspace pre-touch warning: ${err.message}`);
+    console.warn(`[Idle Detector Setup] Claude workspace setup warning: ${err.message}`);
   }
 
-  const handleFileChange = () => {
+  try {
+    if (!fs.existsSync(cursorDir)) {
+      fs.mkdirSync(cursorDir, { recursive: true });
+    }
+    if (!fs.existsSync(cursorTranscriptPath)) {
+      fs.writeFileSync(cursorTranscriptPath, JSON.stringify({ lastActivity: Date.now() }), "utf-8");
+    }
+    if (!fs.existsSync(cursorHistoryPath)) {
+      fs.writeFileSync(cursorHistoryPath, JSON.stringify({ lastActivity: Date.now() }), "utf-8");
+    }
+  } catch (err: any) {
+    console.log(`[Idle Detector Setup] Cursor workspace fallback warning (non-blocking): ${err.message}`);
+  }
+
+  const handleFileChange = (filePath: string) => {
+    console.log(`[Idle Detector] File change detected on monitored path: ${path.basename(filePath)}`);
     updateActiveActivity();
   };
 
   const isWindows = process.platform === "win32";
+  const targets = [transcriptPath, cursorTranscriptPath, cursorHistoryPath];
 
   if (isWindows) {
-    console.log("[Idle Detector] OS Windows target. Initializing Chokidar fallback file watcher...");
+    console.log("[Idle Detector] OS Windows target. Initializing Chokidar fallback watcher on multiple targets...");
     try {
-      watcherInstance = chokidar.watch(transcriptPath, { persistent: true, ignoreInitial: true });
-      watcherInstance.on("change", handleFileChange);
+      watcherInstance = chokidar.watch(targets, { persistent: true, ignoreInitial: true });
+      watcherInstance.on("change", (p: string) => handleFileChange(p));
     } catch (e: any) {
       console.error("[Idle Detector] Chokidar setup error:", e.message);
     }
   } else {
-    console.log("[Idle Detector] OS UNIX target. Initializing native fs.watch...");
+    console.log("[Idle Detector] OS UNIX target. Initializing chokidar for robust multi-path watch...");
     try {
-      // Watch the containing directory or the file itself
-      watcherInstance = fs.watch(transcriptPath, (eventType) => {
-        if (eventType === "change") {
-          handleFileChange();
-        }
-      });
+      watcherInstance = chokidar.watch(targets, { persistent: true, ignoreInitial: true });
+      watcherInstance.on("change", (p: string) => handleFileChange(p));
     } catch (err: any) {
-      console.warn(`[Idle Detector UNIX] fs.watch error on ${transcriptPath}: ${err.message}. Running chokidar failover...`);
-      // Failover to Chokidar if fs.watch fails inside container sandbox layers
+      console.warn(`[Idle Detector UNIX] Chokidar setup failed: ${err.message}. Running native fs.watch fallback on main Claude file...`);
       try {
-        watcherInstance = chokidar.watch(transcriptPath, { persistent: true, ignoreInitial: true });
-        watcherInstance.on("change", handleFileChange);
-      } catch (ce: any) {
-        console.error("[Idle Detector] Chokidar backup fallback failed:", ce.message);
+        watcherInstance = fs.watch(transcriptPath, (eventType) => {
+          if (eventType === "change") {
+            handleFileChange(transcriptPath);
+          }
+        });
+      } catch (fe: any) {
+        console.error("[Idle Detector] Native fallback watch failed:", fe.message);
       }
     }
   }

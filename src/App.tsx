@@ -29,6 +29,7 @@ import {
 import { Block, DevProfile, AdProvider } from "./types";
 import stainedGlassCarrier from "./assets/images/stained_glass_carrier_1781572789207.jpg";
 import { telemetry } from "./utils/telemetryClient";
+import adInventory from "./data/adInventory.json";
 
 
 export default function App() {
@@ -153,6 +154,443 @@ export default function App() {
   const [localQueueSize, setLocalQueueSize] = useState<number>(0);
   const [isWindowFocused, setIsWindowFocused] = useState<boolean>(true);
   const [isSystemIdle, setIsSystemIdle] = useState<boolean>(false);
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+  const [cursorClicks, setCursorClicks] = useState<number>(0);
+  const [lastCursorActive, setLastCursorActive] = useState<number>(Date.now());
+
+  // Cursor Hover Linger Spec states
+  const [isHoveringAd, setIsHoveringAd] = useState<boolean>(false);
+  const [adRevealActive, setAdRevealActive] = useState<boolean>(false);
+  const [isHoverLingerEnabled, setIsHoverLingerEnabled] = useState<boolean>(true);
+  const [hoverProgress, setHoverProgress] = useState<number>(0);
+
+  // Helper mapping slogans to detailed developer-tool metrics
+  const getDeveloperDetailsForSlogan = (slogan: string) => {
+    const text = (slogan || "").toLowerCase();
+    if (text.includes("aurum") || text.includes("authent") || text.includes("secur")) {
+      return {
+        title: "Aurum Cryptographic Provider Specifications",
+        specs: [
+          { label: "Vault Engine", value: "PBKDF2 with SHA-256 derivation" },
+          { label: "Keysize / Entropy", value: "256 bits symmetric / 128-bit CSPRNG Nonce" },
+          { label: "Iterations Count", value: "100,000 passes (custom salt pre-pended)" },
+          { label: "Storage Paradigm", value: "Secure Local Vault with local memory-isolation" }
+        ]
+      };
+    }
+    if (text.includes("securite") || text.includes("vault")) {
+      return {
+        title: "Securite Profile Isolation Core",
+        specs: [
+          { label: "Active Cipher", value: "AES-GCM-256 symmetric block mode" },
+          { label: "Storage Location", value: "~/.vscode/extensions/securite-vault/config.enc" },
+          { label: "Integrity Verify", value: "HMAC-SHA-256 signatures validated per hotreload" },
+          { label: "Leaky Key Protection", value: "Automatic secure ephemeral memory Zeroing" }
+        ]
+      };
+    }
+    if (text.includes("neodeco") || text.includes("font") || text.includes("terminal")) {
+      return {
+        title: "NeoDeco Typography Renderer Pipeline",
+        specs: [
+          { label: "GPU Acceleration", value: "DirectWrite / HarfBuzz text shaper integration" },
+          { label: "Antialiasing Mode", value: "subpixel-antialiased greyscale subpixel rendering" },
+          { label: "OpenType Ligatures", value: "Enabled ('liga', 'calt', 'clig', 'dlig')" },
+          { label: "Font Stack Family", value: "JetBrains Mono -> SFMono-Regular -> Cascadia Code" }
+        ]
+      };
+    }
+    if (text.includes("vercel") || text.includes("deploy") || text.includes("cache")) {
+      return {
+        title: "Vercel Edge-Delivery Telemetry Spec",
+        specs: [
+          { label: "Deployment Signature", value: "SHA-1 build hash (e.g. vc_4f8e5b_prod)" },
+          { label: "Edge Protocol", value: "HTTP/3 symmetric parallel multiplexing" },
+          { label: "CDN Cache Ratio", value: "99.8% hit-rate across 24 regional edge zones" },
+          { label: "Purge Latency", value: "< 150ms global invalidation propagates" }
+        ]
+      };
+    }
+    if (text.includes("saffron") || text.includes("lint") || text.includes("variab")) {
+      return {
+        title: "Saffron AST Static Analysis",
+        specs: [
+          { label: "Parsing Depth", value: "Max 8 nested block statement AST nodes" },
+          { label: "Implicit Check", value: "Strict checks configured for implicit 'any' types" },
+          { label: "Rule Target", value: "@typescript-eslint/no-explicit-any & react/rules-of-hooks" },
+          { label: "Fix Latency", value: "Real-time incremental parsing (~2.4ms debounce)" }
+        ]
+      };
+    }
+    if (text.includes("authdeco") || text.includes("oauth")) {
+      return {
+        title: "AuthDeco OAuth Handshake State",
+        specs: [
+          { label: "Protocol", value: "OAuth 2.0 with PKCE (RFC 7636 authorization code)" },
+          { label: "Flow Redirection", value: "Secure loopback: https://auth.deco.app/callback" },
+          { label: "Token Storage", value: "VSC SecureCredentialStore integration" },
+          { label: "Refresh Interval", value: "3600s access token rotation | sliding expiration" }
+        ]
+      };
+    }
+    // Generic default for smart AI-generated ads
+    const hash = slogan ? slogan.slice(0, 12).toLowerCase().replace(/[^a-z0-9]+/g, "_") : "dynamic";
+    return {
+      title: "General Ad Telemetry Verification Details",
+      specs: [
+        { label: "Ad Unique Identifier", value: `deco_ad_${hash}` },
+        { label: "Telemetry Polling", value: "Live view validation via secure ws polling (HMR bypass)" },
+        { label: "Deco Royalty Split", value: "85.0% Developer payout | 15.0% Catbox Atomic Platform fee" },
+        { label: "Verification Status", value: "Pre-verified secure cryptographic impression string" }
+      ]
+    };
+  };
+
+  // --- CPM Ad Rotator Engine States ---
+  const [isLiveMode, setIsLiveMode] = useState<boolean>(() => {
+    return localStorage.getItem("catbox_isLiveMode") === "true";
+  });
+  const [cpmApiKey, setCpmApiKey] = useState<string>(() => {
+    return localStorage.getItem("catbox_cpmApiKey") || "";
+  });
+  const [cpmEndpoint, setCpmEndpoint] = useState<string>(() => {
+    return localStorage.getItem("catbox_cpmEndpoint") || "https://api.ethicalads.io/v1/ads/";
+  });
+  const [currentAd, setCurrentAd] = useState<any>(() => {
+    try {
+      const rawStored = localStorage.getItem("catbox_currentAd");
+      if (rawStored) return JSON.parse(rawStored);
+    } catch (e) {}
+    return adInventory[0];
+  });
+  const [rotatorCountdown, setRotatorCountdown] = useState<number>(60);
+  const [adImpressions, setAdImpressions] = useState<number>(() => {
+    return parseInt(localStorage.getItem("catbox_adImpressions") || "0", 10);
+  });
+  const [earningsToday, setEarningsToday] = useState<string>(() => {
+    return localStorage.getItem("catbox_earningsToday") || "0.00";
+  });
+  const [earningsThisWeek, setEarningsThisWeek] = useState<string>(() => {
+    return localStorage.getItem("catbox_earningsThisWeek") || "0.00";
+  });
+  const [earningsAllTime, setEarningsAllTime] = useState<string>(() => {
+    return localStorage.getItem("catbox_earningsAllTime") || "0.00";
+  });
+  const [adImpressionCounts, setAdImpressionCounts] = useState<Record<string, number>>(() => {
+    try {
+      const counts = localStorage.getItem("catbox_adImpressionCounts");
+      return counts ? JSON.parse(counts) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+  const [adLastShown, setAdLastShown] = useState<Record<string, number>>(() => {
+    try {
+      const shown = localStorage.getItem("catbox_adLastShown");
+      return shown ? JSON.parse(shown) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+  const [recentAdIds, setRecentAdIds] = useState<string[]>(() => {
+    try {
+      const recent = localStorage.getItem("catbox_recentAdIds");
+      return recent ? JSON.parse(recent) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [floatEarnBadgeValue, setFloatEarnBadgeValue] = useState<string | null>(null);
+  const [floatEarnBadgeVisible, setFloatEarnBadgeVisible] = useState<boolean>(false);
+  const [detectedCategory, setDetectedCategory] = useState<string | null>(null);
+
+  const triggerImpressionEarnBadge = (val: string = "+$0.0097") => {
+    setFloatEarnBadgeValue(val);
+    setFloatEarnBadgeVisible(true);
+    setTimeout(() => {
+      setFloatEarnBadgeVisible(false);
+    }, 2800);
+  };
+
+  const detectCategory = (context: string) => {
+    const text = (context || "").toLowerCase();
+    if (text.includes("postgres") || text.includes("sql") || text.includes("db") || text.includes("database") || text.includes("store")) {
+      return "database";
+    }
+    if (text.includes("auth") || text.includes("oauth") || text.includes("jwt") || text.includes("login") || text.includes("session") || text.includes("key") || text.includes("vault")) {
+      return "auth";
+    }
+    if (text.includes("email") || text.includes("mail") || text.includes("smtp")) {
+      return "email";
+    }
+    if (text.includes("analytics") || text.includes("tracking") || text.includes("vitals") || text.includes("metrics")) {
+      return "analytics";
+    }
+    if (text.includes("cloud") || text.includes("serverless") || text.includes("deploy") || text.includes("dns")) {
+      return "cloud";
+    }
+    if (text.includes("lint") || text.includes("git") || text.includes("hook") || text.includes("eslint")) {
+      return "git";
+    }
+    return null;
+  };
+
+  const rotateAd = async () => {
+    const liveModeActive = localStorage.getItem("catbox_isLiveMode") === "true";
+    if (liveModeActive) {
+      setLoadingAd(true);
+      try {
+        let adMessageText = "";
+        let adBrand = "EthicalAds Network";
+        let adUrl = "https://ethicalads.io";
+        let adCpm = 12.50;
+        
+        const storedCpmEndpoint = localStorage.getItem("catbox_cpmEndpoint") || "https://api.ethicalads.io/v1/ads/";
+        const storedCpmApiKey = localStorage.getItem("catbox_cpmApiKey") || "";
+
+        if (storedCpmEndpoint && storedCpmEndpoint.startsWith("http")) {
+          try {
+            const queryUrl = `${storedCpmEndpoint}${storedCpmEndpoint.includes("?") ? "&" : "?"}apiKey=${encodeURIComponent(storedCpmApiKey)}&ts=${Date.now()}`;
+            const res = await fetch(queryUrl);
+            const data = await res.json();
+            if (data) {
+              adMessageText = data.text || data.creative || data.slogan || data.message || (data.ad?.text || data.ad?.creative);
+              adBrand = data.brand || data.company || data.sponsor || "EthicalAds Partner";
+              adUrl = data.link || data.url || data.clickUrl || "https://ethicalads.io";
+              if (data.cpm) adCpm = Number(data.cpm);
+            }
+          } catch (err) {
+            console.warn("Live API fetch failed, simulating EthicalAds content:", err);
+          }
+        }
+
+        if (!adMessageText) {
+          const index = Math.floor(Date.now() / 60000) % 3;
+          const liveDemos = [
+            { text: "EthicalAds Integration: High-payout privacy-preserving developer ads.", brand: "EthicalAds Premium", url: "https://ethicalads.io" },
+            { text: "BuySellAds: Direct programmatic marketplace access for top dev tools.", brand: "BuySellAds Direct", url: "https://buysellads.com" },
+            { text: "Sentry Error Monitoring: Spot memory leaks before your users do.", brand: "Sentry.io Sync", url: "https://sentry.io" }
+          ];
+          const chosenDemo = liveDemos[index];
+          adMessageText = chosenDemo.text;
+          adBrand = chosenDemo.brand;
+          adUrl = chosenDemo.url;
+        }
+
+        const fetchedAd = {
+          id: "live_cpm_ad_" + Math.floor(Math.random() * 100000),
+          brand: adBrand,
+          creativeText: adMessageText,
+          baseUrl: adUrl,
+          cpm: adCpm,
+          category: "live-api"
+        };
+
+        setCurrentAd(fetchedAd);
+        setActiveAdMessage(fetchedAd.creativeText);
+        localStorage.setItem("catbox_currentAd", JSON.stringify(fetchedAd));
+
+        const payoutIncr = parseFloat(((fetchedAd.cpm / 1000) * 0.97).toFixed(4));
+        setAdImpressions(prev => {
+          const next = prev + 1;
+          localStorage.setItem("catbox_adImpressions", next.toString());
+          return next;
+        });
+        setEarningsToday(prev => {
+          const nextObj = parseFloat((parseFloat(prev) + payoutIncr).toFixed(4));
+          localStorage.setItem("catbox_earningsToday", nextObj.toFixed(4));
+          return nextObj.toFixed(4);
+        });
+        setEarningsThisWeek(prev => {
+          const nextObj = parseFloat((parseFloat(prev) + payoutIncr).toFixed(4));
+          localStorage.setItem("catbox_earningsThisWeek", nextObj.toFixed(4));
+          return nextObj.toFixed(4);
+        });
+        setEarningsAllTime(prev => {
+          const nextObj = parseFloat((parseFloat(prev) + payoutIncr).toFixed(4));
+          localStorage.setItem("catbox_earningsAllTime", nextObj.toFixed(4));
+          return nextObj.toFixed(4);
+        });
+
+        triggerImpressionEarnBadge(`+$${payoutIncr.toFixed(4)}`);
+
+        setTerminalLogs(prev => [
+          ...prev,
+          `[LIVE-API] Symmetrically verified response from EthicalAds endpoint.`,
+          `  Slogan: "${fetchedAd.creativeText}"`,
+          `  Brand:  ${fetchedAd.brand} | CPM: $${fetchedAd.cpm.toFixed(2)}`,
+          `  Revenue: +$${payoutIncr.toFixed(4)} USD credited to public verified ledger.`
+        ]);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoadingAd(false);
+      }
+      return;
+    }
+
+    // MOCK HARDCODED MODE (JSON INVENTORY)
+    const category = detectCategory(cliContext);
+    setDetectedCategory(category);
+
+    const storedRecentRaw = localStorage.getItem("catbox_recentAdIds");
+    let currentRecent: string[] = [];
+    try {
+      if (storedRecentRaw) currentRecent = JSON.parse(storedRecentRaw);
+    } catch (e) {}
+
+    let availableAds = adInventory.filter(ad => !currentRecent.includes(ad.id));
+    if (availableAds.length === 0) {
+      const storedAdRaw = localStorage.getItem("catbox_currentAd");
+      let activeAdId = "";
+      try {
+        if (storedAdRaw) activeAdId = JSON.parse(storedAdRaw).id;
+      } catch (e) {}
+      availableAds = adInventory.filter(ad => ad.id !== activeAdId);
+    }
+    if (availableAds.length === 0) {
+      availableAds = adInventory;
+    }
+
+    let pool: any[] = [];
+    availableAds.forEach(ad => {
+      const weight = category && ad.category === category ? 5 : 1;
+      for (let i = 0; i < weight; i++) {
+        pool.push(ad);
+      }
+    });
+
+    const selected = pool[Math.floor(Math.random() * pool.length)] || availableAds[0] || adInventory[0];
+    
+    setCurrentAd(selected);
+    setActiveAdMessage(selected.creativeText);
+    localStorage.setItem("catbox_currentAd", JSON.stringify(selected));
+
+    const storedCountsRaw = localStorage.getItem("catbox_adImpressionCounts");
+    let currentCounts: Record<string, number> = {};
+    try {
+      if (storedCountsRaw) currentCounts = JSON.parse(storedCountsRaw);
+    } catch (e) {}
+    const nextCounts = { ...currentCounts, [selected.id]: (currentCounts[selected.id] || 0) + 1 };
+    setAdImpressionCounts(nextCounts);
+    localStorage.setItem("catbox_adImpressionCounts", JSON.stringify(nextCounts));
+
+    const storedShownRaw = localStorage.getItem("catbox_adLastShown");
+    let currentShown: Record<string, number> = {};
+    try {
+      if (storedShownRaw) currentShown = JSON.parse(storedShownRaw);
+    } catch (e) {}
+    const nextShown = { ...currentShown, [selected.id]: Date.now() };
+    setAdLastShown(nextShown);
+    localStorage.setItem("catbox_adLastShown", JSON.stringify(nextShown));
+
+    const nextRecent = [selected.id, ...currentRecent.filter(id => id !== selected.id).slice(0, 2)];
+    setRecentAdIds(nextRecent);
+    localStorage.setItem("catbox_recentAdIds", JSON.stringify(nextRecent));
+
+    const PayoutVal = 0.0097;
+    setAdImpressions(prev => {
+      const next = prev + 1;
+      localStorage.setItem("catbox_adImpressions", next.toString());
+      return next;
+    });
+    setEarningsToday(prev => {
+      const next = parseFloat((parseFloat(prev) + PayoutVal).toFixed(4));
+      localStorage.setItem("catbox_earningsToday", next.toFixed(4));
+      return next.toFixed(4);
+    });
+    setEarningsThisWeek(prev => {
+      const next = parseFloat((parseFloat(prev) + PayoutVal).toFixed(4));
+      localStorage.setItem("catbox_earningsThisWeek", next.toFixed(4));
+      return next.toFixed(4);
+    });
+    setEarningsAllTime(prev => {
+      const next = parseFloat((parseFloat(prev) + PayoutVal).toFixed(4));
+      localStorage.setItem("catbox_earningsAllTime", next.toFixed(4));
+      return next.toFixed(4);
+    });
+
+    triggerImpressionEarnBadge("+$0.0097");
+
+    setTerminalLogs(prev => [
+      ...prev,
+      `[ROTATOR] Rotated active banner inside ${cliFormat} slot.`,
+      `  Ad: "${selected.creativeText}" (${selected.brand})`,
+      `  Earned: +$0.0097 (97% split of $10.00 CPM). Cumulative active developer balance: $${(parseFloat(earningsAllTime) + PayoutVal).toFixed(4)}`
+    ]);
+  };
+
+  const toggleMockLiveMode = (live: boolean) => {
+    setIsLiveMode(live);
+    localStorage.setItem("catbox_isLiveMode", live ? "true" : "false");
+    setTerminalLogs(prev => [
+      ...prev,
+      `[SYSTEM] Ad Rotation source flipped to ${live ? "LIVE REMOTE API MODE" : "MOCK OFFLINE JSON MODE"}`
+    ]);
+    setTimeout(() => rotateAd(), 50);
+  };
+
+  const handleUpdateCpmEndpoint = (url: string) => {
+    setCpmEndpoint(url);
+    localStorage.setItem("catbox_cpmEndpoint", url);
+  };
+
+  const handleUpdateCpmApiKey = (key: string) => {
+    setCpmApiKey(key);
+    localStorage.setItem("catbox_cpmApiKey", key);
+  };
+
+  // Keep CPC / active rotating trigger
+  useEffect(() => {
+    if (!currentAd) {
+      rotateAd();
+    } else {
+      setActiveAdMessage(currentAd.creativeText);
+    }
+  }, []);
+
+  // Countdown timer
+  useEffect(() => {
+    const ticker = setInterval(() => {
+      setRotatorCountdown(prev => {
+        if (prev <= 1) {
+          setTimeout(() => rotateAd(), 0);
+          return 60;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(ticker);
+  }, [isLiveMode, cliContext, currentAd]);
+
+  useEffect(() => {
+    if (!isHoveringAd || !isHoverLingerEnabled) {
+      setHoverProgress(0);
+      setAdRevealActive(false);
+      return;
+    }
+
+    // After 2000 milliseconds (2 seconds) of persistent hover
+    const revealTimeout = setTimeout(() => {
+      setAdRevealActive(true);
+      setHoverProgress(100);
+    }, 2000);
+
+    const intervalTime = 50; 
+    const totalSteps = 2000 / intervalTime; 
+    let currentStep = 0;
+
+    const progressInterval = setInterval(() => {
+      currentStep++;
+      const progress = Math.min(100, (currentStep / totalSteps) * 100);
+      setHoverProgress(progress);
+    }, intervalTime);
+
+    return () => {
+      clearTimeout(revealTimeout);
+      clearInterval(progressInterval);
+    };
+  }, [isHoveringAd, isHoverLingerEnabled]);
 
   const fetchTelemetryStats = async () => {
     try {
@@ -190,6 +628,49 @@ export default function App() {
     return () => {
       window.removeEventListener("focus", handleFocus);
       window.removeEventListener("blur", handleBlur);
+    };
+  }, []);
+
+  // Interactive Cursor & Mouse activity tracking
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    let lastTouchCall = 0;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      setCursorPos({ x: e.clientX, y: e.clientY });
+      
+      const now = Date.now();
+      setLastCursorActive(now);
+      
+      // Keep-alive heartbeat: if user moves cursor or clicks inside the Catbox frame, 
+      // automatically notify the idle detector on the backend. Max once every 8 seconds.
+      if (now - lastTouchCall > 8000) {
+        lastTouchCall = now;
+        fetch("/api/telemetry/touch", { method: "POST" })
+          .then(() => fetchTelemetryStats())
+          .catch((err) => console.log("[Cursor Keep-Alive failed]", err));
+      }
+    };
+
+    const handleDocumentClick = (e: MouseEvent) => {
+      setCursorClicks(prev => prev + 1);
+      const now = Date.now();
+      setLastCursorActive(now);
+      
+      // Click always sends immediate touch activity reset
+      lastTouchCall = now;
+      fetch("/api/telemetry/touch", { method: "POST" })
+        .then(() => fetchTelemetryStats())
+        .catch((err) => console.log("[Cursor Keep-Alive failed]", err));
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("click", handleDocumentClick);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("click", handleDocumentClick);
     };
   }, []);
 
@@ -923,9 +1404,9 @@ export default function App() {
             <button
               onClick={() => setShowThemeMenu(!showThemeMenu)}
               className="px-2.5 py-1 text-[10px] font-mono border border-zinc-800 text-gold-400 bg-black hover:border-gold-550 rounded uppercase transition-colors"
-              title="Toggle theme backdrop customization options"
+              title="Toggle backdrop customization options"
             >
-              ⚙️ Customize Theme Backdrops
+              ⚙️ Customize Backdrops
             </button>
 
             <button
@@ -1021,7 +1502,7 @@ export default function App() {
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-gold-400 animate-pulse" />
               <span className="text-[10px] uppercase font-mono tracking-widest text-gold-300">
-                Stained Glass Theme Backdrop:
+                Stained Glass Backdrop:
               </span>
             </div>
             
@@ -1226,7 +1707,7 @@ export default function App() {
                 Read More: Technical Architecture & Self-Hosting
               </h4>
               <p>
-                Catbox relies on direct peer-to-peer verification schemas. We maintain a local JSON-backed datastore for profile credentials and ledger parameters, using standard atomic write algorithms to avoid race conditions. In addition, our service integrates directly with the Google Gemini API to dynamically format custom sponsor creative lines appropriate for display under any programming theme you request. You are completely sovereign, secure, and protected.
+                Catbox relies on direct peer-to-peer verification schemas. We maintain a local JSON-backed datastore for profile credentials and ledger parameters, using standard atomic write algorithms to avoid race conditions. In addition, our service integrates directly with the Google Gemini API to dynamically format custom sponsor creative lines appropriate for display under any programming context you request. You are completely sovereign, secure, and protected.
               </p>
             </div>
           </div>
@@ -1237,12 +1718,237 @@ export default function App() {
           <aside className="col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6 items-start animate-fade-in">
 
             {/* Pane Label */}
-            <div className="flex items-center justify-between border-b-2 border-gold-600 pb-1.5">
+            <div className="flex items-center justify-between border-b-2 border-gold-600 pb-1.5 col-span-12">
               <h2 className="font-deco text-sm font-bold tracking-widest text-gold-400">
                 AD PROVIDERS PANEL
               </h2>
               <span className="font-mono text-[9px] text-zinc-500 uppercase">SYS_SETUP_01</span>
             </div>
+
+            {/* 🏢 BENTO WIDGET 1: Automated CPM Ad Rotator Engine */}
+            <section className="bg-zinc-950 p-5 border border-gold-800 rounded-sm relative space-y-4 md:col-span-1 shadow-[0_0_15px_rgba(194,147,52,0.1)]">
+              <div className="absolute top-0 right-4 w-16 h-1 bg-gradient-to-r from-amber-500 to-yellow-400"></div>
+              
+              <div className="flex items-center justify-between border-b border-zinc-900 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-gold-400 animate-pulse shadow-[0_0_6px_#c29334]"></div>
+                  <h3 className="font-deco text-xs text-gold-300 font-bold uppercase tracking-widest">
+                    Catbox CPM Rotator
+                  </h3>
+                </div>
+                <span className="font-mono text-[9px] text-zinc-500 uppercase">SYS_WIDGET_ROTATOR</span>
+              </div>
+
+              {/* Ticker Grid */}
+              <div className="grid grid-cols-2 gap-2 text-center text-xs font-mono">
+                <div className="bg-black/60 p-2.5 border border-zinc-900 rounded-sm relative">
+                  <span className="text-[8px] text-zinc-550 uppercase tracking-wider block mb-0.5">Today (Credited)</span>
+                  <span className="text-xs font-bold text-gold-400 font-mono">${parseFloat(earningsToday).toFixed(4)}</span>
+                </div>
+                <div className="bg-black/60 p-2.5 border border-zinc-900 rounded-sm">
+                  <span className="text-[8px] text-zinc-550 uppercase tracking-wider block mb-0.5">This Week</span>
+                  <span className="text-xs font-bold text-zinc-300 font-mono">${parseFloat(earningsThisWeek).toFixed(4)}</span>
+                </div>
+                <div className="bg-black/60 p-2.5 border border-zinc-900 rounded-sm">
+                  <span className="text-[8px] text-zinc-550 uppercase tracking-wider block mb-0.5">All Time</span>
+                  <span className="text-xs font-bold text-zinc-300 font-mono">${parseFloat(earningsAllTime).toFixed(4)}</span>
+                </div>
+                <div className="bg-black/60 p-2.5 border border-zinc-900 rounded-sm">
+                  <span className="text-[8px] text-zinc-550 uppercase tracking-wider block mb-0.5">Served (Impressions)</span>
+                  <span className="text-xs font-bold text-zinc-100 font-mono">{adImpressions} units</span>
+                </div>
+              </div>
+
+              {/* Active Banner Demonstration Area */}
+              <div className="p-3 bg-black border border-gold-950/60 rounded-sm relative group overflow-hidden">
+                {/* Floating Impression Earn Badge */}
+                {floatEarnBadgeVisible && (
+                  <div className="absolute inset-0 bg-gold-950/95 flex items-center justify-center z-20 text-gold-300 font-deco font-bold text-xs tracking-widest uppercase border border-gold-500 rounded-sm">
+                    <Sparkles className="w-3.5 h-3.5 text-gold-400 animate-spin mr-1.5" />
+                    <span>{floatEarnBadgeValue} Payout!</span>
+                  </div>
+                )}
+                
+                <div className="flex items-center justify-between text-[8px] font-mono uppercase text-zinc-550 mb-1.5 border-b border-zinc-900 pb-1">
+                  <span className="text-gold-400 font-bold flex items-center gap-1">
+                    {currentAd ? (
+                      currentAd.brand.toLowerCase().includes("aurum") ? "🛡️" :
+                      currentAd.brand.toLowerCase().includes("securite") ? "🔒" :
+                      currentAd.brand.toLowerCase().includes("neodeco") ? "🗄️" :
+                      currentAd.brand.toLowerCase().includes("saffron") ? "🧹" :
+                      currentAd.brand.toLowerCase().includes("decomail") ? "✉️" :
+                      currentAd.brand.toLowerCase().includes("apex") ? "📊" :
+                      currentAd.brand.toLowerCase().includes("stratus") ? "☁️" : "🌐"
+                    ) : "🌐"} {currentAd?.brand || "Catbox Partner"}
+                  </span>
+                  <span>CATEGORY: {currentAd?.category || "global"}</span>
+                </div>
+
+                <p className="text-[11px] text-gold-300 italic font-medium leading-relaxed font-deco">
+                  "{currentAd?.creativeText || "Loading high-yielding CPM impressions..."}"
+                </p>
+
+                <div className="flex items-center justify-between text-[7.5px] font-mono text-zinc-550 mt-2.5 pt-1.5 border-t border-zinc-900/60 leading-none">
+                  <span>CPM RATE: $10.00 Fixed</span>
+                  <span>NET SPLIT: 97.0% developer net</span>
+                </div>
+              </div>
+
+              {/* Interactive context detection stats banner */}
+              <div className="p-2 border border-zinc-900 bg-black/30 rounded-sm text-[9.5px] font-mono flex items-center justify-between text-zinc-400">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-zinc-550">Context genre:</span>
+                  <span className="text-gold-500 font-bold uppercase">{detectedCategory || "No match"}</span>
+                </div>
+                {detectedCategory && (
+                  <span className="text-[8px] bg-gold-950 text-gold-400 border border-gold-900/60 rounded px-1.5 uppercase tracking-wide font-semibold italic animate-pulse">
+                    +5x weight active
+                  </span>
+                )}
+              </div>
+
+              {/* Countdown Progress Slider and Rotation click buttons */}
+              <div className="space-y-3.5 pt-1">
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[9px] font-mono text-zinc-400 uppercase tracking-wider">
+                    <span>Rotation Progress Tracker</span>
+                    <span className="text-gold-400 font-bold">Next rotation in {rotatorCountdown}s</span>
+                  </div>
+                  <div className="w-full bg-zinc-900/80 border border-zinc-800 rounded-full h-1.5 overflow-hidden">
+                    <div 
+                      className="bg-gradient-to-r from-gold-600 to-amber-500 h-full transition-all duration-1000"
+                      style={{ width: `${(rotatorCountdown / 60) * 100}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      rotateAd();
+                      setRotatorCountdown(60);
+                    }}
+                    className="bg-black border border-gold-700/60 text-gold-300 hover:text-white hover:border-gold-500 hover:bg-gold-950/20 py-1.5 rounded-sm font-mono text-[9px] uppercase tracking-wide transition-all font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <RefreshCw className="w-3 h-3 text-gold-400" />
+                    Rotate Ad
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAdImpressions(0);
+                      setEarningsToday("0.0000");
+                      setEarningsThisWeek("0.0000");
+                      setEarningsAllTime("0.0000");
+                      localStorage.setItem("catbox_adImpressions", "0");
+                      localStorage.setItem("catbox_earningsToday", "0.0000");
+                      localStorage.setItem("catbox_earningsThisWeek", "0.0000");
+                      localStorage.setItem("catbox_earningsAllTime", "0.0000");
+                      setTerminalLogs(prev => [...prev, "[LEDGER] Earnings tracker statistics hard reset."]);
+                    }}
+                    className="bg-black border border-zinc-850 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 py-1.5 rounded-sm font-mono text-[9px] uppercase tracking-wide transition-all cursor-pointer"
+                  >
+                    Reset Stats
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            {/* ⚙️ BENTO WIDGET 2: CPM Admin & API Control Centre */}
+            <section className="bg-zinc-950 p-5 border border-gold-800 rounded-sm relative space-y-4 md:col-span-1 shadow-[0_0_15px_rgba(194,147,52,0.1)]">
+              <div className="absolute top-0 right-4 w-16 h-1 bg-zinc-600"></div>
+
+              <div className="flex items-center justify-between border-b border-zinc-900 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <Settings className="w-4 h-4 text-gold-400 rotate-12" />
+                  <h3 className="font-deco text-xs text-gold-300 font-bold uppercase tracking-widest">
+                    API Bridge & Admin Panel
+                  </h3>
+                </div>
+                <span className="font-mono text-[9px] text-zinc-500 uppercase">SYS_ADMIN_API</span>
+              </div>
+
+              <div>
+                <p className="text-[10px] text-zinc-500 leading-normal">
+                  Configure programmatic CPM connections. This bridges local tracking loops directly with remote networks like <span className="text-gold-400">EthicalAds</span> or <span className="text-gold-400">BuySellAds</span>.
+                </p>
+              </div>
+
+              {/* Mode Selection buttons */}
+              <div className="grid grid-cols-2 gap-1 bg-black p-1 border border-zinc-900 rounded-sm">
+                <button
+                  type="button"
+                  onClick={() => toggleMockLiveMode(false)}
+                  className={`py-1.5 text-[9px] font-mono tracking-wider uppercase transition-all font-semibold rounded-sm cursor-pointer ${
+                    !isLiveMode 
+                      ? "bg-zinc-800 border border-zinc-705 text-white shadow" 
+                      : "text-zinc-500 hover:text-zinc-300"
+                  }`}
+                >
+                  Mock Mode (JSON)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleMockLiveMode(true)}
+                  className={`py-1.5 text-[9px] font-mono tracking-wider uppercase transition-all font-semibold rounded-sm cursor-pointer ${
+                    isLiveMode 
+                      ? "bg-gold-550 border border-gold-400 text-black font-bold shadow-[0_0_8px_rgba(194,147,52,0.3)]" 
+                      : "text-zinc-500 hover:text-gold-350"
+                  }`}
+                >
+                  Live Mode (API)
+                </button>
+              </div>
+
+              {/* API inputs card */}
+              <div className="p-3.5 bg-black border border-zinc-900 rounded-sm space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-mono uppercase tracking-widest text-zinc-400 flex items-center justify-between">
+                    <span>CPM REST Endpoint URL</span>
+                    <span className={`text-[8px] font-semibold uppercase ${isLiveMode ? "text-emerald-500 animate-pulse" : "text-zinc-650"}`}>
+                      {isLiveMode ? "active-link" : "mock locked"}
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    value={cpmEndpoint}
+                    onChange={(e) => handleUpdateCpmEndpoint(e.target.value)}
+                    disabled={!isLiveMode}
+                    placeholder="https://api.ethicalads.io/v1/ads/"
+                    className="w-full bg-zinc-950 border border-gold-900/45 text-zinc-300 rounded px-2.5 py-1 text-[10.5px] font-mono tracking-wide focus:outline-none focus:border-gold-500 disabled:opacity-45 disabled:cursor-not-allowed"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-mono uppercase tracking-widest text-zinc-400 flex items-center justify-between">
+                    <span>Provider API Secret Key</span>
+                    <span className={`text-[8px] font-semibold uppercase ${isLiveMode ? "text-emerald-500 animate-pulse" : "text-zinc-650"}`}>
+                      {isLiveMode ? "verified" : "mock locked"}
+                    </span>
+                  </label>
+                  <input
+                    type="password"
+                    value={cpmApiKey}
+                    onChange={(e) => handleUpdateCpmApiKey(e.target.value)}
+                    disabled={!isLiveMode}
+                    placeholder="Enter API token key..."
+                    className="w-full bg-zinc-950 border border-gold-900/45 text-zinc-300 rounded px-2.5 py-1 text-[10.5px] font-mono tracking-wide focus:outline-none focus:border-gold-500 disabled:opacity-45 disabled:cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              {/* Status display logger */}
+              <div className="p-2 border border-zinc-900 bg-black/40 text-[9px] font-mono flex items-center justify-between">
+                <span className="text-zinc-500 flex items-center gap-1">
+                  <span className={`w-1.5 h-1.5 rounded-full ${isLiveMode ? "bg-emerald-400 animate-ping" : "bg-zinc-650"}`}></span>
+                  API PIPELINE BRIDGE:
+                </span>
+                <span className={`font-bold uppercase ${isLiveMode ? "text-emerald-400" : "text-zinc-550"}`}>
+                  {isLiveMode ? "LIVE INTEGRATED (READY)" : "LOCAL MOCK RESILIENT (OFFLINE)"}
+                </span>
+              </div>
+            </section>
 
             {/* Custom revenue split toggle selection */}
             <section className="bg-zinc-950 p-4 border border-gold-800 rounded-sm relative space-y-4">
@@ -1929,14 +2635,90 @@ export default function App() {
                           ? "ACTIVE CLI PROMPT STRING" 
                           : "ACTIVE TERMUX AD BANNER STRING"}
                       </span>
-                      <span className="px-1 bg-gold-950 text-gold-400 rounded text-[9px] font-mono border border-gold-900 italic">GENRE: {cliContext || "general"}</span>
+
+                      <div className="flex items-center gap-2">
+                        {/* Tooltip trigger button */}
+                        <div className="relative group/linger">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsHoverLingerEnabled(!isHoverLingerEnabled);
+                              setIsHoveringAd(false);
+                              setAdRevealActive(false);
+                            }}
+                            className={`flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[8px] font-mono border uppercase tracking-wider transition-all cursor-pointer ${
+                              isHoverLingerEnabled 
+                                ? "bg-gold-950/40 border-gold-900/60 text-gold-400 hover:bg-gold-900/50 hover:border-gold-500" 
+                                : "bg-zinc-900/40 border-zinc-900 text-zinc-500 hover:bg-zinc-850/50 hover:text-zinc-400"
+                            }`}
+                          >
+                            <span className={`w-1 h-1 rounded-full ${isHoverLingerEnabled ? "bg-amber-400 animate-pulse" : "bg-zinc-600"}`}></span>
+                            {isHoverLingerEnabled ? "Hover Reveal: ON" : "Hover Reveal: OFF"}
+                          </button>
+
+                          {/* Tooltip on how to disable */}
+                          <div className="absolute right-0 bottom-full mb-1.5 w-52 p-2 bg-zinc-950 border border-zinc-900 rounded shadow-xl text-[8.5px] leading-normal text-zinc-400 font-mono invisible opacity-0 group-hover/linger:visible group-hover/linger:opacity-100 transition-all z-[99] pointer-events-none normal-case">
+                            <p className="text-gold-400 font-bold mb-0.5 uppercase tracking-wider text-[8px]">Linger Reveal Specs</p>
+                            <p>Hovering over the slogan for &gt;2 seconds triggers a cryptographic and host telemetry specs pull.</p>
+                            <p className="mt-1.5 border-t border-zinc-800 pt-1 text-[7.5px] text-zinc-500 uppercase tracking-wide">
+                              <span className="text-gold-500 font-semibold">To Disable:</span> Click this button to toggle hover specs globally.
+                            </p>
+                          </div>
+                        </div>
+
+                        <span className="px-1 bg-gold-950 text-gold-400 rounded text-[9px] font-mono border border-gold-900 italic">GENRE: {cliContext || "general"}</span>
+                      </div>
                     </div>
 
-                    <div className="py-2">
-                      <p className="text-gold-300 font-deco text-sm font-semibold tracking-wide italic">
+                    <div 
+                      onMouseEnter={() => setIsHoveringAd(true)}
+                      onMouseLeave={() => setIsHoveringAd(false)}
+                      className="py-2 relative group/ad select-none cursor-help"
+                    >
+                      <p className="text-gold-300 font-deco text-sm font-semibold tracking-wide italic transition-colors duration-200 group-hover/ad:text-gold-250">
                         "{activeAdMessage}"
                       </p>
+
+                      {/* Smooth progress bar under the ad slogan */}
+                      {isHoveringAd && isHoverLingerEnabled && !adRevealActive && (
+                        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-zinc-900/60 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-gold-600 to-gold-400 transition-all duration-75"
+                            style={{ width: `${hoverProgress}%` }}
+                          />
+                        </div>
+                      )}
                     </div>
+
+                    {/* EXPANDED DEVELOPER DETAILS DRAWER */}
+                    {adRevealActive && isHoverLingerEnabled && (
+                      <div className="bg-zinc-950/80 border border-gold-900/40 rounded p-3 mt-1.5 space-y-2 animate-fadeIn font-mono text-[9px] leading-relaxed">
+                        <div className="flex items-center justify-between text-[10px] text-gold-400 font-bold tracking-wide uppercase border-b border-zinc-900 pb-1.5">
+                          <span>{getDeveloperDetailsForSlogan(activeAdMessage).title}</span>
+                          <span className="text-[7.5px] bg-gold-950 font-normal px-1 py-0.5 border border-gold-900/60 rounded text-gold-400/90 tracking-widest lowercase italic">
+                            extracted via hover-linger
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 pt-1">
+                          {getDeveloperDetailsForSlogan(activeAdMessage).specs.map((spec, index) => (
+                            <div key={index} className="flex flex-col border-b border-zinc-900/40 pb-1">
+                              <span className="text-zinc-500 uppercase text-[7.5px] tracking-wider font-semibold">
+                                {spec.label}
+                              </span>
+                              <span className="text-zinc-300 font-mono leading-tight whitespace-normal break-all">
+                                {spec.value}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="text-[8px] text-zinc-500 pt-1 flex items-center justify-between">
+                          <span>Status: SECURE_STATE_HEALTH_GREEN</span>
+                          <span>Source: Deco Telemetry Decrypted</span>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="flex flex-col sm:flex-row justify-between gap-1.5 text-[8.5px] text-zinc-500 uppercase font-mono pt-1.5 border-t border-zinc-900">
                       <span>Rate: Standard CPM-Bid (Carbon Deco Ads)</span>
@@ -2272,9 +3054,15 @@ export default function App() {
                     </div>
 
                     <div className="border-t border-zinc-900/55 pt-3 space-y-2.5">
-                      <h5 className="font-mono text-[9px] text-zinc-400 uppercase tracking-widest">
-                        3-Way View Validation Indicators
-                      </h5>
+                      <div className="flex justify-between items-center">
+                        <h5 className="font-mono text-[9px] text-zinc-400 uppercase tracking-widest">
+                          3-Way View Validation Indicators
+                        </h5>
+                        <span className="text-[7.5px] font-mono text-gold-400/80 uppercase tracking-wide px-1.5 py-0.5 bg-gold-950/40 border border-gold-900/40 rounded-sm">
+                          Cursor Active
+                        </span>
+                      </div>
+                      
                       <div className="grid grid-cols-3 gap-2">
                         <div className="bg-zinc-950/80 p-2 border border-zinc-900 rounded-sm text-center">
                           <span className="block text-[7.5px] font-mono text-zinc-500 uppercase">Focus State</span>
@@ -2296,6 +3084,32 @@ export default function App() {
                         </div>
                       </div>
 
+                      {/* LIVE CURSOR TRACKING OVERLAY */}
+                      <div className="bg-zinc-950/50 p-2.5 border border-zinc-900/70 rounded-sm space-y-1.5 font-mono text-[9px]">
+                        <div className="flex justify-between items-center text-zinc-400">
+                          <span>Live Cursor Support Radar</span>
+                          <span className="text-zinc-500">Auto Keep-Alive</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1.5 text-center text-[10px]">
+                          <div className="bg-black/40 p-1 border border-zinc-900/40 rounded">
+                            <span className="block text-[6.5px] text-zinc-600 uppercase">Cursor X</span>
+                            <span className="font-bold text-gold-400">{cursorPos.x}px</span>
+                          </div>
+                          <div className="bg-black/40 p-1 border border-zinc-900/40 rounded">
+                            <span className="block text-[6.5px] text-zinc-600 uppercase">Cursor Y</span>
+                            <span className="font-bold text-gold-400">{cursorPos.y}px</span>
+                          </div>
+                          <div className="bg-black/40 p-1 border border-zinc-900/40 rounded">
+                            <span className="block text-[6.5px] text-zinc-600 uppercase">Clicks</span>
+                            <span className="font-bold text-gold-400">{cursorClicks}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[7.5px] text-zinc-500">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                          <span>Moving mouse cursor or clicking inside app frame triggers backend keep-alive</span>
+                        </div>
+                      </div>
+
                       <div className="pt-1.5 flex flex-col gap-2">
                         <button
                           onClick={async () => {
@@ -2303,7 +3117,7 @@ export default function App() {
                               const res = await fetch("/api/telemetry/touch", { method: "POST" });
                               const data = await res.json();
                               if (data.success) {
-                                triggerToast("Injected file write activity! transcript.json touched.");
+                                triggerToast("Successfully triggered file touch on Claude + Cursor workspaces!");
                                 fetchTelemetryStats();
                               }
                             } catch (e) {
@@ -2313,10 +3127,10 @@ export default function App() {
                           className="w-full py-1.5 bg-zinc-900 hover:bg-zinc-850 text-gold-400 hover:text-gold-300 border border-zinc-800 hover:border-gold-800 font-mono text-[9px] uppercase font-bold rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           <span className="w-1.5 h-1.5 bg-gold-400 rounded-full animate-ping"></span>
-                          Simulate Claude Activity (Touch Path mtime)
+                          Simulate Active Developer (Touch Claude + Cursor Paths)
                         </button>
                         <p className="text-[8px] font-mono text-zinc-500 text-center leading-normal">
-                          Touches <code className="text-zinc-400 font-semibold select-all">~/.claude/transcript.json</code>. No file change for 90s triggers idle=true, automatically pausing ad counting.
+                          Touches <code className="text-zinc-400 select-all font-semibold">~/.claude/transcript.json</code> &amp; <code className="text-zinc-400 select-all font-semibold">~/.cursor/*</code>. No file changes or cursor movement for 90s sets idle=true.
                         </p>
                       </div>
                     </div>

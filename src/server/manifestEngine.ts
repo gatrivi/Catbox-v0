@@ -35,7 +35,7 @@ const FALLBACK_MANIFEST: AdManifest = [
  * Validates a single item to ensure it strictly conforms to the AdManifestItem interface
  * and contains zero remote executable vectors.
  */
-function isValidAdItem(item: any): item is AdManifestItem {
+export function isValidAdItem(item: any): item is AdManifestItem {
   if (typeof item !== "object" || item === null) {
     return false;
   }

@@ -21,7 +21,7 @@ export function generateUUID(): string {
   });
 }
 
-class TelemetryClient {
+export class TelemetryClient {
   private queue: TelemetryEvent[] = [];
   private isFlushing = false;
   private intervalId: any = null;

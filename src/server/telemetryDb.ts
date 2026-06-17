@@ -46,6 +46,12 @@ export async function initializeTelemetryStore() {
         connectionTimeoutMillis: 5000,
       });
 
+      // Handle background errors to prevent unhandled pool exceptions from crashing the server
+      pgPool.on("error", (err: any) => {
+        console.warn("[Telemetry Store PG Pool Background Warning]", err.message || err);
+        usePgFallback = true;
+      });
+
       // Test connection & ensure table
       const client = await pgPool.connect();
       await client.query(`
@@ -64,7 +70,12 @@ export async function initializeTelemetryStore() {
       console.log("[Telemetry Store] ✓ PostgreSQL connected & table initialized successfully.");
     } catch (err: any) {
       console.warn(`[Telemetry Store Warning] PostgreSQL connection failed: ${err.message}. Enabling high-fidelity local JSON fallback.`);
-      pgPool = null;
+      if (pgPool) {
+        try {
+          await pgPool.end();
+        } catch (_) {}
+        pgPool = null;
+      }
       usePgFallback = true;
     }
   } else {
@@ -132,6 +143,7 @@ export async function checkAndMarkDuplicate(eventId: string): Promise<boolean> {
       return isDuplicate;
     } catch (err: any) {
       console.warn(`[Telemetry Store Redis Runtime Warning] Fallback triggered during duplicate check: ${err.message}`);
+      useRedisFallback = true;
     }
   }
 
@@ -187,6 +199,7 @@ export async function saveTelemetryEvents(events: TelemetryEvent[]) {
       return;
     } catch (err: any) {
       console.warn(`[Telemetry Store SQL Write Warning] Failed to write to PostgreSQL: ${err.message}. Falling back to file.`);
+      usePgFallback = true;
     }
   }
 
@@ -232,6 +245,7 @@ export async function getTelemetryStats() {
       };
     } catch (err: any) {
       console.warn(`[Telemetry Store Stats Error] Failed to retrieve SQL stats: ${err.message}`);
+      usePgFallback = true;
     }
   }
 

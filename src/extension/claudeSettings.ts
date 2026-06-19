@@ -8,14 +8,17 @@ export interface ClaudeSettingsPaths {
   settingsPath: string;
   backupDir: string;
   backupPath: string;
+  createdMarkerPath: string;
 }
 
 export interface ClaudeIntegrationState {
   settingsExists: boolean;
   backupExists: boolean;
+  createdMarkerExists: boolean;
   spinnerVerbs: string[];
   settingsPath: string;
   backupPath: string;
+  createdMarkerPath: string;
 }
 
 export function getClaudePaths(homeDir = os.homedir()): ClaudeSettingsPaths {
@@ -25,6 +28,7 @@ export function getClaudePaths(homeDir = os.homedir()): ClaudeSettingsPaths {
     settingsPath: path.join(homeDir, ".claude", "settings.json"),
     backupDir: path.join(homeDir, ".catbox"),
     backupPath: path.join(homeDir, ".catbox", "claude-settings.backup.json"),
+    createdMarkerPath: path.join(homeDir, ".catbox", "claude-settings.created"),
   };
 }
 
@@ -71,6 +75,8 @@ export async function injectClaudeSpinnerText(
 
   if (fs.existsSync(paths.settingsPath) && !fs.existsSync(paths.backupPath)) {
     fs.copyFileSync(paths.settingsPath, paths.backupPath);
+  } else if (!fs.existsSync(paths.settingsPath)) {
+    fs.writeFileSync(paths.createdMarkerPath, new Date().toISOString(), "utf-8");
   }
 
   const settings = readJsonObject(paths.settingsPath);
@@ -89,8 +95,12 @@ export async function restoreClaudeSettings(
   if (fs.existsSync(paths.backupPath)) {
     fs.copyFileSync(paths.backupPath, paths.settingsPath);
     fs.unlinkSync(paths.backupPath);
-  } else if (fs.existsSync(paths.settingsPath)) {
+  } else if (fs.existsSync(paths.createdMarkerPath) && fs.existsSync(paths.settingsPath)) {
     fs.unlinkSync(paths.settingsPath);
+  }
+
+  if (fs.existsSync(paths.createdMarkerPath)) {
+    fs.unlinkSync(paths.createdMarkerPath);
   }
 
   return getClaudeIntegrationState(homeDir);
@@ -108,8 +118,10 @@ export function getClaudeIntegrationState(
   return {
     settingsExists: fs.existsSync(paths.settingsPath),
     backupExists: fs.existsSync(paths.backupPath),
+    createdMarkerExists: fs.existsSync(paths.createdMarkerPath),
     spinnerVerbs,
     settingsPath: paths.settingsPath,
     backupPath: paths.backupPath,
+    createdMarkerPath: paths.createdMarkerPath,
   };
 }

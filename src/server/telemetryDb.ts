@@ -11,7 +11,7 @@ export interface TelemetryEvent {
   ad_id: string;
   campaign_id: string;
   timestamp: string;
-  surface: "spinner" | "statusbar" | "cli";
+  surface: "spinner" | "statusbar" | "cli" | "visual_panel";
   visible_duration_ms: number;
 }
 

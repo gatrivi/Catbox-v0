@@ -5,6 +5,7 @@ export interface AdManifestItem {
   text: string;
   link: string;
   hash: string;
+  imageUrl?: string;
 }
 
 export type AdManifest = AdManifestItem[];
@@ -40,20 +41,20 @@ export function isValidAdItem(item: any): item is AdManifestItem {
     return false;
   }
 
-  // Check expected key structure strictly
-  const expectedKeys = ["id", "text", "link", "hash"];
-  const actualKeys = Object.keys(item);
-  if (actualKeys.length !== expectedKeys.length || !expectedKeys.every(k => actualKeys.includes(k))) {
+  const requiredKeys = ["id", "text", "link", "hash"];
+  if (!requiredKeys.every((k) => typeof item[k] === "string")) {
     return false;
   }
 
-  if (
-    typeof item.id !== "string" ||
-    typeof item.text !== "string" ||
-    typeof item.link !== "string" ||
-    typeof item.hash !== "string"
-  ) {
+  const allowedKeys = new Set([...requiredKeys, "imageUrl"]);
+  const actualKeys = Object.keys(item);
+  if (!actualKeys.every((k) => allowedKeys.has(k)) || actualKeys.length < requiredKeys.length) {
     return false;
+  }
+
+  if (item.imageUrl !== undefined) {
+    if (typeof item.imageUrl !== "string") return false;
+    if (!/^https?:\/\//i.test(item.imageUrl)) return false;
   }
 
   // Sanitization: Reject any string containing <script>, executable code, eval, bash commands, etc.

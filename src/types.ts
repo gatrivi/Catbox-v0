@@ -12,6 +12,15 @@ export interface Block {
   provider: string;
 }
 
+export type ProviderType =
+  | "carbon_cli"
+  | "buysellads"
+  | "paved"
+  | "sovrn"
+  | "infolinks"
+  | "direct_sponsor"
+  | "custom";
+
 export interface AdProvider {
   id: string;
   name: string;
@@ -20,6 +29,11 @@ export interface AdProvider {
   creatorId: string;
   cpmRate: number; // e.g. $0.35 CPM
   status: "pending_verification" | "active";
+  providerType?: ProviderType;
+  manifestPath?: string; // default "/manifest.json"
+  siteId?: string;
+  zoneId?: string;
+  priority?: number; // higher = preferred in weighted selection
 }
 
 export interface DevProfile {

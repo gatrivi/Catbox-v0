@@ -1,6 +1,15 @@
 import express from "express";
 import cors from "cors";
 import http from "http";
+import crypto from "crypto";
+import { buildMockStreamPayload, isMockModeEnabled } from "../server/mockCpmAd";
+import { selectStreamAd } from "../server/adSelection";
+import type { AdProvider } from "../types";
+
+export interface AtomicEngineOptions {
+  getProfile?: () => any;
+  loadProviders?: () => Promise<AdProvider[]>;
+}
 
 /**
  * CatboxAtomicEngine - Core High-Frequency Ad dispatching and VS Code extension sync service.
@@ -10,9 +19,15 @@ export class CatboxAtomicEngine {
   private app: express.Express;
   private port: number = 5176;
   private getProfile?: () => any;
+  private loadProviders?: () => Promise<AdProvider[]>;
 
-  constructor(getProfile?: () => any) {
-    this.getProfile = getProfile;
+  constructor(options?: AtomicEngineOptions | (() => any)) {
+    if (typeof options === "function") {
+      this.getProfile = options;
+    } else if (options) {
+      this.getProfile = options.getProfile;
+      this.loadProviders = options.loadProviders;
+    }
     console.log("[CatboxAtomicEngine] Initialized custom high-frequency ad-routing hardware daemon successfully.");
     this.app = express();
     this.app.use(cors({ origin: "*" }));
@@ -39,8 +54,7 @@ export class CatboxAtomicEngine {
     });
 
     // Endpoint for VS Code Extension to fetch randomized target CPM ad messages
-    this.app.get("/api/atomic/stream", (req, res) => {
-      const crypto = require("crypto");
+    this.app.get("/api/atomic/stream", async (req, res) => {
       const token = (req.query.token as string) || (req.headers["x-catbox-telemetry-token"] as string) || "";
       
       const TELEMETRY_SECRET = "catbox_daily_gold_secret";
@@ -62,62 +76,20 @@ export class CatboxAtomicEngine {
         console.warn("[CatboxAtomicEngine] Telemetry block: Invalid or missing daily token detected from micro-hud client.");
       }
 
-      // Base ads list
-      const seedAds = [
-        { text: "NeoDeco-DB: Elegant geometric SQL schemas. Speed up Postgres by 10x.", link: "https://neodeco-db.io" },
-        { text: "Saffron-Host: Built by architects, loved by elite coders.", link: "https://saffron-host.net" },
-        { text: "Drizzle ORM: Strictly typed queries for high-performance apps.", link: "https://orm.drizzle.team" },
-        { text: "Sentry: Find exceptions before your customers do.", link: "https://sentry.io" },
-        { text: "Stripe-Escrow: Symmetric cryptographic payouts on click events.", link: "https://stripe.com" }
-      ];
-
-      const houseAd = {
-        text: "✶ Catbox Tip: Adding 'laconic' to your AI prompts dramatically reduces output wordiness, saving thousands of tokens, runtime, and brainpower per month ↗",
-        link: "https://ai.google.dev"
-      };
+      if (isMockModeEnabled(req.query.mock as string)) {
+        return res.json(buildMockStreamPayload(isValid));
+      }
 
       const profile = this.getProfile ? this.getProfile() : null;
-      let adsPool = [...seedAds];
-
-      const omitTips = profile?.omitHouseTips === true;
-      if (!omitTips) {
-        adsPool.push(houseAd);
-      }
-
-      const userLinks = profile?.affiliateLinks || {};
-      const prioritizedAds: any[] = [];
-
-      if (userLinks.neon) {
-        const adObj = adsPool.find(a => a.link.includes("neodeco-db.io"));
-        if (adObj) {
-          prioritizedAds.push({ ...adObj, link: userLinks.neon });
-        }
-      }
-      if (userLinks.supabase) {
-        const adObj = adsPool.find(a => a.link.includes("saffron-host.net"));
-        if (adObj) {
-          prioritizedAds.push({ ...adObj, link: userLinks.supabase });
-        }
-      }
-
-      let selected = { text: "Catbox: Open kickbacks platform", link: "https://catbox-db.io" };
-      if (prioritizedAds.length > 0) {
-        selected = prioritizedAds[Math.floor(Math.random() * prioritizedAds.length)];
-      } else if (adsPool.length > 0) {
-        selected = adsPool[Math.floor(Math.random() * adsPool.length)];
-      }
-
-      res.json({
-        success: true,
-        adMessage: selected.text,
-        creativeText: selected.text,
-        targetUrl: selected.link,
-        link: selected.link,
-        cpmEst: 0.28,
-        hashType: "SHA-256",
-        timestamp: new Date().toISOString(),
-        signedTelemetryVerified: isValid
+      const providers = this.loadProviders ? await this.loadProviders() : [];
+      const payload = await selectStreamAd({
+        providers,
+        profile,
+        signedTelemetryVerified: isValid,
+        useProviderNetworks: providers.length > 0,
       });
+
+      res.json(payload);
     });
 
     // Endpoint for VS Code Extension to report ad interaction events back to API

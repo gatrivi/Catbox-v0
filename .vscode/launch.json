@@ -1,0 +1,25 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Catbox Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}/vscode-extension"],
+      "outFiles": ["${workspaceFolder}/vscode-extension/**/*.js"]
+    },
+    {
+      "name": "Run Catbox + Claude Code",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/vscode-extension",
+        "--install-extension",
+        "anthropic.claude-code"
+      ],
+      "outFiles": ["${workspaceFolder}/vscode-extension/**/*.js"]
+    }
+  ]
+}

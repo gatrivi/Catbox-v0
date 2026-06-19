@@ -1,0 +1,14 @@
+[
+  {
+    "id": "paved_supabase",
+    "text": "Supabase: Postgres + Auth + Realtime. The backend your AI stack is missing.",
+    "link": "https://supabase.com",
+    "hash": "e5f6789012345678abcdef9012345678abcdef9012345678abcdef12345678"
+  },
+  {
+    "id": "paved_railway",
+    "text": "Railway: Ship full-stack AI tools from terminal to production in minutes.",
+    "link": "https://railway.app",
+    "hash": "f6789012345678abcdef9012345678abcdef9012345678abcdef1234567890"
+  }
+]

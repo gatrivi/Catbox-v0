@@ -1,0 +1,14 @@
+[
+  {
+    "id": "carbon_cli_example_1",
+    "text": "ExampleDevTool: Placeholder creative for local integration testing only.",
+    "link": "https://example.com/devtool-a",
+    "hash": "a1b2c3d4e5f6789012345678abcdef9012345678abcdef9012345678abcdef12"
+  },
+  {
+    "id": "carbon_cli_example_2",
+    "text": "SampleSaaS: Demo ad slot — replaced by Carbon fill after publisher approval.",
+    "link": "https://example.com/devtool-b",
+    "hash": "b2c3d4e5f6789012345678abcdef9012345678abcdef9012345678abcdef1234"
+  }
+]

@@ -1,48 +1,64 @@
-import * as vscode from "vscode";
-import * as crypto from "crypto";
-import * as fs from "fs";
-import * as path from "path";
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-type TelemetrySurface = "statusbar" | "visual_panel";
-type TelemetryType = "impression_rendered" | "impression_viewable" | "view_tick" | "click";
-
-interface AdPayload {
-  text: string;
-  link: string;
-  id: string;
-  campaignId: string;
-  imageUrl?: string;
-  providerId?: string;
-  providerType?: string;
-}
-
-let statusBarItem: vscode.StatusBarItem;
-let visualAdProvider: CatboxVisualAdProvider | undefined;
-let currentAd: AdPayload = {
+// src/extension/index.ts
+var index_exports = {};
+__export(index_exports, {
+  activate: () => activate,
+  deactivate: () => deactivate
+});
+module.exports = __toCommonJS(index_exports);
+var vscode = __toESM(require("vscode"));
+var crypto = __toESM(require("crypto"));
+var fs = __toESM(require("fs"));
+var path = __toESM(require("path"));
+var statusBarItem;
+var visualAdProvider;
+var currentAd = {
   text: "Catbox: strictly-typed developer ecosystem",
   link: "https://neodeco-db.io",
   id: "default_ad",
-  campaignId: "system_house",
+  campaignId: "system_house"
 };
-
-let viewableTimer: NodeJS.Timeout | undefined;
-let visualViewableTimer: NodeJS.Timeout | undefined;
-let statusBarViewableTracked = false;
-let visualViewableTracked = false;
-
-const TELEMETRY_SECRET = "catbox_daily_gold_secret";
-const MAIN_SERVER = "http://127.0.0.1:3000";
-
-function isVisualAdEnabled(): boolean {
-  return vscode.workspace.getConfiguration("catbox").get<boolean>("visualAd.enabled") === true;
+var viewableTimer;
+var visualViewableTimer;
+var statusBarViewableTracked = false;
+var visualViewableTracked = false;
+var TELEMETRY_SECRET = "catbox_daily_gold_secret";
+var MAIN_SERVER = "http://127.0.0.1:3000";
+function isVisualAdEnabled() {
+  return vscode.workspace.getConfiguration("catbox").get("visualAd.enabled") === true;
 }
-
-function getDailyTelemetryToken(): string {
-  const dateStr = new Date().toISOString().slice(0, 10);
+function getDailyTelemetryToken() {
+  const dateStr = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
   return crypto.createHmac("sha256", TELEMETRY_SECRET).update(dateStr).digest("hex");
 }
-
-function getUserId(): string {
+function getUserId() {
   const folders = vscode.workspace.workspaceFolders;
   if (!folders?.length) {
     return "my_account";
@@ -54,53 +70,37 @@ function getUserId(): string {
       return meta.CATBOX_PUB_ID || meta.CATBOX_WALLET || "my_account";
     }
   } catch {
-    // fall through
   }
   return "my_account";
 }
-
-async function touchActivity(): Promise<void> {
+async function touchActivity() {
   try {
     await fetch(`${MAIN_SERVER}/api/telemetry/touch`, { method: "POST" });
   } catch {
-    // fail-silent when daemon offline
   }
 }
-
-async function emitTelemetry(
-  type: TelemetryType,
-  adId: string,
-  campaignId: string,
-  surface: TelemetrySurface,
-  visibleDurationMs: number = 0
-): Promise<void> {
+async function emitTelemetry(type, adId, campaignId, surface, visibleDurationMs = 0) {
   const event = {
     event_id: crypto.randomUUID(),
     user_id: getUserId(),
     ad_id: adId,
     campaign_id: campaignId,
-    timestamp: new Date().toISOString(),
+    timestamp: (/* @__PURE__ */ new Date()).toISOString(),
     surface,
     type,
-    visible_duration_ms: visibleDurationMs,
+    visible_duration_ms: visibleDurationMs
   };
-
   try {
     await fetch(`${MAIN_SERVER}/api/telemetry`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ events: [event] }),
+      body: JSON.stringify({ events: [event] })
     });
   } catch (err) {
     console.warn("[Catbox Extension] Telemetry dispatch offline:", err);
   }
 }
-
-function scheduleViewableTracking(
-  adId: string,
-  campaignId: string,
-  surface: TelemetrySurface
-): void {
+function scheduleViewableTracking(adId, campaignId, surface) {
   if (surface === "visual_panel") {
     if (visualViewableTimer) clearTimeout(visualViewableTimer);
     visualViewableTracked = false;
@@ -109,10 +109,9 @@ function scheduleViewableTracking(
         visualViewableTracked = true;
         emitTelemetry("impression_viewable", adId, campaignId, "visual_panel");
       }
-    }, 5000);
+    }, 5e3);
     return;
   }
-
   if (viewableTimer) clearTimeout(viewableTimer);
   statusBarViewableTracked = false;
   viewableTimer = setTimeout(() => {
@@ -120,20 +119,16 @@ function scheduleViewableTracking(
       statusBarViewableTracked = true;
       emitTelemetry("impression_viewable", adId, campaignId, "statusbar");
     }
-  }, 5000);
+  }, 5e3);
 }
-
-async function onAdDisplayed(surface: TelemetrySurface): Promise<void> {
+async function onAdDisplayed(surface) {
   await touchActivity();
   await emitTelemetry("impression_rendered", currentAd.id, currentAd.campaignId, surface);
   scheduleViewableTracking(currentAd.id, currentAd.campaignId, surface);
 }
-
-async function reportClick(surface: TelemetrySurface): Promise<void> {
+async function reportClick(surface) {
   if (!currentAd.link) return;
-
   vscode.env.openExternal(vscode.Uri.parse(currentAd.link));
-
   try {
     await fetch(`${MAIN_SERVER}/api/atomic/report-click`, {
       method: "POST",
@@ -141,42 +136,33 @@ async function reportClick(surface: TelemetrySurface): Promise<void> {
       body: JSON.stringify({
         creativeText: currentAd.text,
         url: currentAd.link,
-        clickedAt: new Date().toISOString(),
+        clickedAt: (/* @__PURE__ */ new Date()).toISOString(),
         providerId: currentAd.providerId,
         providerType: currentAd.providerType,
         creativeId: currentAd.id,
         campaignId: currentAd.campaignId,
         eventId: crypto.randomUUID(),
-        surface,
-      }),
+        surface
+      })
     });
   } catch (err) {
     console.warn("[Catbox Extension] Click report offline:", err);
   }
-
   await touchActivity();
   await emitTelemetry("click", currentAd.id, currentAd.campaignId, surface);
 }
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+function escapeHtml(value) {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
-
-class CatboxVisualAdProvider implements vscode.WebviewViewProvider {
-  private view?: vscode.WebviewView;
-  private placeholderWebviewUri = "";
-
-  constructor(private readonly extensionUri: vscode.Uri) {}
-
-  setPlaceholderUri(uri: vscode.Uri): void {
+var CatboxVisualAdProvider = class {
+  constructor(extensionUri) {
+    this.extensionUri = extensionUri;
+    this.placeholderWebviewUri = "";
+  }
+  setPlaceholderUri(uri) {
     this.placeholderWebviewUri = uri.toString();
   }
-
-  resolveWebviewView(webviewView: vscode.WebviewView): void {
+  resolveWebviewView(webviewView) {
     this.view = webviewView;
     this.setPlaceholderUri(
       webviewView.webview.asWebviewUri(
@@ -185,9 +171,8 @@ class CatboxVisualAdProvider implements vscode.WebviewViewProvider {
     );
     webviewView.webview.options = {
       enableScripts: true,
-      localResourceRoots: [this.extensionUri],
+      localResourceRoots: [this.extensionUri]
     };
-
     webviewView.webview.onDidReceiveMessage(async (msg) => {
       if (msg?.type === "click") {
         await reportClick("visual_panel");
@@ -196,31 +181,25 @@ class CatboxVisualAdProvider implements vscode.WebviewViewProvider {
         await vscode.commands.executeCommand("catbox.hideVisualAd");
       }
     });
-
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible && isVisualAdEnabled()) {
-        onAdDisplayed("visual_panel").catch(() => undefined);
+        onAdDisplayed("visual_panel").catch(() => void 0);
       }
     });
-
     this.render();
     if (webviewView.visible && isVisualAdEnabled()) {
-      onAdDisplayed("visual_panel").catch(() => undefined);
+      onAdDisplayed("visual_panel").catch(() => void 0);
     }
   }
-
-  update(payload: AdPayload): void {
+  update(payload) {
     currentAd = payload;
     this.render();
   }
-
-  private render(): void {
+  render() {
     if (!this.view) return;
-
     const imageSrc = currentAd.imageUrl || this.placeholderWebviewUri;
     const safeText = escapeHtml(currentAd.text);
     const safeImage = escapeHtml(imageSrc);
-
     this.view.webview.html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -291,85 +270,66 @@ class CatboxVisualAdProvider implements vscode.WebviewViewProvider {
 </body>
 </html>`;
   }
-}
-
-function showVisualOnboarding(context: vscode.ExtensionContext): void {
-  if (context.globalState.get<boolean>("catbox.visualAd.onboardingShown")) return;
+};
+function showVisualOnboarding(context) {
+  if (context.globalState.get("catbox.visualAd.onboardingShown")) return;
   context.globalState.update("catbox.visualAd.onboardingShown", true);
-
-  vscode.window
-    .showInformationMessage(
-      "Catbox: Optional pets-sized sponsor panel can earn extra revenue. Dev-tool ads only. Enable anytime in settings.",
-      "Enable panel",
-      "Not now"
-    )
-    .then((choice) => {
-      if (choice === "Enable panel") {
-        vscode.commands.executeCommand("catbox.enableVisualAd");
-      }
-    });
+  vscode.window.showInformationMessage(
+    "Catbox: Optional pets-sized sponsor panel can earn extra revenue. Dev-tool ads only. Enable anytime in settings.",
+    "Enable panel",
+    "Not now"
+  ).then((choice) => {
+    if (choice === "Enable panel") {
+      vscode.commands.executeCommand("catbox.enableVisualAd");
+    }
+  });
 }
-
-function applyAdToSurfaces(): void {
+function applyAdToSurfaces() {
   statusBarItem.text = `$(globe) ${currentAd.text}`;
   if (isVisualAdEnabled()) {
     visualAdProvider?.update(currentAd);
   }
 }
-
-export function activate(context: vscode.ExtensionContext) {
+function activate(context) {
   visualAdProvider = new CatboxVisualAdProvider(context.extensionUri);
-
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider("catbox.visualAd", visualAdProvider, {
-      webviewOptions: { retainContextWhenHidden: true },
+      webviewOptions: { retainContextWhenHidden: true }
     })
   );
-
   statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   statusBarItem.command = "catbox.openAd";
-  statusBarItem.tooltip = "Sponsored by Catbox • Click to support & explore details";
+  statusBarItem.tooltip = "Sponsored by Catbox \u2022 Click to support & explore details";
   statusBarItem.text = "$(globe) Catbox: Connecting...";
   statusBarItem.show();
-
   const openAdCommand = vscode.commands.registerCommand("catbox.openAd", () => {
     reportClick("statusbar");
   });
-
   const enableVisualCommand = vscode.commands.registerCommand("catbox.enableVisualAd", async () => {
-    await vscode.workspace
-      .getConfiguration("catbox")
-      .update("visualAd.enabled", true, vscode.ConfigurationTarget.Global);
+    await vscode.workspace.getConfiguration("catbox").update("visualAd.enabled", true, vscode.ConfigurationTarget.Global);
     await vscode.commands.executeCommand("catbox.visualAd.focus");
     visualAdProvider?.update(currentAd);
     await onAdDisplayed("visual_panel");
     vscode.window.showInformationMessage("Catbox visual sponsor panel enabled. Hide anytime via panel button or settings.");
   });
-
   const hideVisualCommand = vscode.commands.registerCommand("catbox.hideVisualAd", async () => {
-    await vscode.workspace
-      .getConfiguration("catbox")
-      .update("visualAd.enabled", false, vscode.ConfigurationTarget.Global);
+    await vscode.workspace.getConfiguration("catbox").update("visualAd.enabled", false, vscode.ConfigurationTarget.Global);
     vscode.window.showInformationMessage("Catbox visual sponsor panel hidden.");
   });
-
   const configListener = vscode.workspace.onDidChangeConfiguration((e) => {
     if (e.affectsConfiguration("catbox.visualAd.enabled") && isVisualAdEnabled()) {
-      vscode.commands.executeCommand("catbox.visualAd.focus").then(undefined, () => undefined);
+      vscode.commands.executeCommand("catbox.visualAd.focus").then(void 0, () => void 0);
       visualAdProvider?.update(currentAd);
-      onAdDisplayed("visual_panel").catch(() => undefined);
+      onAdDisplayed("visual_panel").catch(() => void 0);
     }
   });
-
   const fetchAdPayload = async () => {
     try {
       const token = getDailyTelemetryToken();
-      const useMock =
-        process.env.CATBOX_MOCK_AD === "1" ||
-        context.extensionMode === vscode.ExtensionMode.Development;
+      const useMock = process.env.CATBOX_MOCK_AD === "1" || context.extensionMode === vscode.ExtensionMode.Development;
       const mockQuery = useMock ? "&mock=1" : "";
       const response = await fetch(`${MAIN_SERVER}/api/atomic/stream?token=${token}${mockQuery}`, {
-        headers: { "x-catbox-telemetry-token": token },
+        headers: { "x-catbox-telemetry-token": token }
       });
       if (response.ok) {
         const data = await response.json();
@@ -381,7 +341,7 @@ export function activate(context: vscode.ExtensionContext) {
             campaignId: data.campaign_id || currentAd.campaignId,
             imageUrl: data.imageUrl,
             providerId: data.providerId,
-            providerType: data.providerType,
+            providerType: data.providerType
           };
           applyAdToSurfaces();
           await onAdDisplayed("statusbar");
@@ -398,38 +358,36 @@ export function activate(context: vscode.ExtensionContext) {
           id: "fb_deco_db",
           text: "NeoDeco-DB: Elegant geometric SQL schemas. Speed up Postgres by 10x.",
           link: "https://neodeco-db.io",
-          campaign_id: "campaign_neodeco",
+          campaign_id: "campaign_neodeco"
         },
         {
           id: "fb_saffron",
           text: "Saffron-Host: Built by gold-standard architects, loved by elite coders.",
           link: "https://saffron-host.net",
-          campaign_id: "campaign_saffron",
+          campaign_id: "campaign_saffron"
         },
         {
           id: "fb_drizzle",
           text: "Drizzle ORM: Strictly typed queries for high-performance apps.",
           link: "https://orm.drizzle.team",
-          campaign_id: "campaign_drizzle",
-        },
+          campaign_id: "campaign_drizzle"
+        }
       ];
       const fallback = localSponsors[Math.floor(Math.random() * localSponsors.length)];
       currentAd = {
         text: fallback.text,
         link: fallback.link,
         id: fallback.id,
-        campaignId: fallback.campaign_id,
+        campaignId: fallback.campaign_id
       };
       applyAdToSurfaces();
       await onAdDisplayed("statusbar");
     }
   };
-
   touchActivity();
   fetchAdPayload();
-  const pollTimer = setInterval(fetchAdPayload, 60000);
+  const pollTimer = setInterval(fetchAdPayload, 6e4);
   showVisualOnboarding(context);
-
   context.subscriptions.push(statusBarItem);
   context.subscriptions.push(openAdCommand);
   context.subscriptions.push(enableVisualCommand);
@@ -440,12 +398,16 @@ export function activate(context: vscode.ExtensionContext) {
       clearInterval(pollTimer);
       if (viewableTimer) clearTimeout(viewableTimer);
       if (visualViewableTimer) clearTimeout(visualViewableTimer);
-    },
+    }
   });
 }
-
-export function deactivate() {
+function deactivate() {
   if (viewableTimer) clearTimeout(viewableTimer);
   if (visualViewableTimer) clearTimeout(visualViewableTimer);
   if (statusBarItem) statusBarItem.hide();
 }
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
+  activate,
+  deactivate
+});

@@ -4,7 +4,7 @@ export interface TelemetryEvent {
   ad_id: string; // creative ad identifier
   campaign_id: string; // provider or sponsor campaign id
   timestamp: string; // ISO event time
-  surface: "spinner" | "statusbar" | "cli";
+  surface: "spinner" | "statusbar" | "cli" | "visual_panel";
   type: string; // "impression_rendered" | "impression_viewable" | "view_tick" | "click"
   visible_duration_ms: number; // 0 for impressions, accumulated milliseconds for view ticks
 }
@@ -69,7 +69,7 @@ export class TelemetryClient {
     type: "impression_rendered" | "impression_viewable" | "view_tick" | "click",
     adId: string,
     campaignId: string,
-    surface: "spinner" | "statusbar" | "cli",
+    surface: "spinner" | "statusbar" | "cli" | "visual_panel",
     visibleDurationMs: number = 0
   ) {
     const event: TelemetryEvent = {

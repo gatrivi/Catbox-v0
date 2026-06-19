@@ -1,0 +1,24 @@
+{
+  "my_account": {
+    "id": "my_account",
+    "balance": 21.3678,
+    "impressionCount": 432,
+    "clickCount": 28,
+    "platformFeePercent": 15,
+    "refBoostEnabled": false,
+    "adProviderCount": 2,
+    "cattbackBalance": 0.22,
+    "affiliateLinks": {
+      "neon": "https://neodeco-db.io",
+      "supabase": "https://saffron-host.net"
+    },
+    "referredUserCount": 0,
+    "earlyBirdTier": "STABLE_BASELINE",
+    "daysSinceBoost": 90,
+    "omitHouseTips": false,
+    "selfServePromos": [
+      "✶ Sponsor: Try my custom fast geometric CSS engine - DecoLayout ↗"
+    ],
+    "installsCount": 8
+  }
+}

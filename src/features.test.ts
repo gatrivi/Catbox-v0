@@ -2,6 +2,7 @@ import { describe, test, expect, vi, beforeEach } from "vitest";
 import { generateUUID, TelemetryClient } from "./utils/telemetryClient";
 import { isValidAdItem } from "./server/manifestEngine";
 import { checkAndMarkDuplicate } from "./server/telemetryDb";
+import { MOCK_CPM_AD, getDailyTelemetryToken } from "./server/mockCpmAd";
 
 describe("Catbox Cryptographic UUID Generator", () => {
   test("generates a valid structural UUID v4 format", () => {
@@ -15,6 +16,18 @@ describe("Catbox Cryptographic UUID Generator", () => {
     const ids = Array.from({ length: 100 }, () => generateUUID());
     const uniqueIds = new Set(ids);
     expect(uniqueIds.size).toBe(100);
+  });
+});
+
+describe("CPM mock ad fixture", () => {
+  test("mock ad passes manifest security validation", () => {
+    expect(isValidAdItem(MOCK_CPM_AD)).toBe(true);
+  });
+
+  test("daily telemetry token is 64-char hex HMAC", () => {
+    const token = getDailyTelemetryToken();
+    expect(token).toMatch(/^[0-9a-f]{64}$/i);
+    expect(getDailyTelemetryToken()).toBe(token);
   });
 });
 

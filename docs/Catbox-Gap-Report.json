@@ -1,0 +1,62 @@
+{
+  "uiOnboardingSteps": [
+    {
+      "key": "step-concepts",
+      "label": "Getting Started - Concepts",
+      "completed": true,
+      "evidenceFile": "src/App.tsx"
+    },
+    {
+      "key": "step-sim",
+      "label": "Getting Started - Simulation",
+      "completed": false,
+      "evidenceFile": "src/App.tsx"
+    },
+    {
+      "key": "step-promo",
+      "label": "Getting Started - Promotions",
+      "completed": false,
+      "evidenceFile": "src/App.tsx"
+    },
+    {
+      "key": "step-escrow",
+      "label": "Getting Started - Escrow",
+      "completed": false,
+      "evidenceFile": "src/App.tsx"
+    },
+    {
+      "key": "step-vscode",
+      "label": "Getting Started - VS Code Integration",
+      "completed": false,
+      "evidenceFile": "src/App.tsx"
+    }
+  ],
+  "missingStepCount": 4,
+  "apiImplementationGaps": [
+    {
+      "reference": "GET /api/atomic/config (advertised by atomic engine metadata)",
+      "implemented": false,
+      "evidenceFiles": [
+        "src/utils/atomicEngine.ts",
+        "server.ts"
+      ],
+      "details": "atomicEngine.ts includes endpoints.configuration = \"/api/atomic/config\" in the / handler response, but there is no corresponding route handler in src/utils/atomicEngine.ts and no /api/atomic/config match in server.ts."
+    }
+  ],
+  "mvpTestCoverageNotes": {
+    "testFile": "src/features.test.ts",
+    "coveredAreas": [
+      "UUID generator structure/uniqueness",
+      "Ad manifest item validation",
+      "Telemetry deduplication logic",
+      "Idle-state eligibility boolean logic",
+      "Earnings split computations",
+      "Telemetry queue behavior at unit level"
+    ],
+    "notCoveredAreas": [
+      "REST endpoint integration behavior for ledger/telemetry/payout",
+      "Atomic engine endpoint completeness beyond unit assumptions"
+    ]
+  }
+}
+

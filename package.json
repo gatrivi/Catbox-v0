@@ -10,6 +10,11 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "test": "vitest run",
+    "test:extension-cpm": "tsx scripts/test-extension-cpm.ts",
+    "test:pre-ship": "tsx scripts/test-pre-ship.ts",
+    "test:pre-ship:carbon": "tsx scripts/test-pre-ship-carbon.ts",
+    "seed:ad-networks": "tsx scripts/seed-ad-networks.ts",
+    "compile:extension": "esbuild src/extension/index.ts --bundle --platform=node --external:vscode --outfile=vscode-extension/extension.js --format=cjs",
     "start": "node dist/server.cjs"
   },
   "dependencies": {

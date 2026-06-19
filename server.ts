@@ -21,6 +21,16 @@ import {
   simulateActivity,
   getIdleDetectorDetails
 } from "./src/server/idleDetector";
+import { buildMockStreamPayload, isMockModeEnabled, MOCK_CPM_AD } from "./src/server/mockCpmAd";
+import { selectStreamAd, HOUSE_AD } from "./src/server/adSelection";
+import { fetchProviderCreatives } from "./src/server/providers";
+import { filterValidManifestItems } from "./src/server/providers/normalize";
+import { PLAN_NETWORK_PROVIDERS } from "./src/server/providers/seedNetworks";
+import type { AdProvider } from "./src/types";
+import {
+  reportProviderEvent,
+  shouldReportToProvider,
+} from "./src/server/providers/reporting";
 
 
 const app = express();
@@ -28,6 +38,18 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(cors({ origin: "*" }));
 app.use(express.json());
+
+app.get("/api/catbox/visual-placeholder.svg", async (_req, res) => {
+  try {
+    const svg = await fs.readFile(
+      path.join(process.cwd(), "vscode-extension", "assets", "visual-placeholder.svg"),
+      "utf-8"
+    );
+    res.type("image/svg+xml").send(svg);
+  } catch {
+    res.status(404).send("not found");
+  }
+});
 
 // Server-side encryption variables
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "cattbacks_secure_deco_gold_key_2026";
@@ -46,16 +68,6 @@ interface Block {
   platformPercent: number;
   description: string;
   provider: string;
-}
-
-interface AdProvider {
-  id: string;
-  name: string;
-  baseUrl: string;
-  sharedWithCommunity: boolean;
-  creatorId: string;
-  cpmRate: number;
-  status: "pending_verification" | "active";
 }
 
 interface DevProfile {
@@ -158,36 +170,7 @@ class DataStore {
     try {
       await fs.access(this.providersPath);
     } catch {
-      const initialProviders: AdProvider[] = [
-        {
-          id: "prov_carbon",
-          name: "Carbon Deco Ads",
-          baseUrl: "https://api.carbondeco.srv",
-          sharedWithCommunity: true,
-          creatorId: "dev_linus_99",
-          cpmRate: 0.18,
-          status: "active",
-        },
-        {
-          id: "prov_aurum",
-          name: "Aurum Media CLI",
-          baseUrl: "https://aurum-adnet.io",
-          sharedWithCommunity: true,
-          creatorId: "dev_ada_lovelace",
-          cpmRate: 0.25,
-          status: "active",
-        },
-        {
-          id: "prov_retro",
-          name: "Console Retro Ads",
-          baseUrl: "https://retroconsole.net",
-          sharedWithCommunity: false,
-          creatorId: "dev_wz_coder",
-          cpmRate: 0.15,
-          status: "active",
-        },
-      ];
-      await this.saveWithAtomicWrite(this.providersPath, initialProviders);
+      await this.saveWithAtomicWrite(this.providersPath, PLAN_NETWORK_PROVIDERS);
     }
 
     // Seed Profiles
@@ -449,28 +432,7 @@ app.post("/api/ledger/reset", async (req, res) => {
     const block1 = store.createBlockDirect(initialLedger, "AD_IMPRESSION", "dev_linus_99", 0.12, 0.03, 20, "VS Code statusbar: 'Optimized PostgreSQL by Neon: Try it free'", "Carbon Deco Ads");
     initialLedger.push(block1);
     await store.saveLedger(initialLedger);
-    
-    const initialProviders: AdProvider[] = [
-      {
-        id: "prov_carbon",
-        name: "Carbon Deco Ads",
-        baseUrl: "https://api.carbondeco.srv",
-        sharedWithCommunity: true,
-        creatorId: "dev_linus_99",
-        cpmRate: 0.18,
-        status: "active",
-      },
-      {
-        id: "prov_aurum",
-        name: "Aurum Media CLI",
-        baseUrl: "https://aurum-adnet.io",
-        sharedWithCommunity: true,
-        creatorId: "dev_ada_lovelace",
-        cpmRate: 0.25,
-        status: "active",
-      }
-    ];
-    await store.saveProviders(initialProviders);
+    await store.saveProviders(PLAN_NETWORK_PROVIDERS);
 
     const myAccountReset: DevProfile = {
       id: "my_account",
@@ -509,7 +471,18 @@ app.post("/api/ledger/reset", async (req, res) => {
 // 3. Bring Your Own Provider: Register custom third-party ad network
 app.post("/api/providers/register", async (req, res) => {
   try {
-    const { name, baseUrl, sharedWithCommunity = false, cpmRate = 0.20 } = req.body;
+    const {
+      name,
+      baseUrl,
+      sharedWithCommunity = false,
+      cpmRate = 0.20,
+      providerType = "custom",
+      manifestPath,
+      siteId,
+      zoneId,
+      priority,
+      status = "active",
+    } = req.body;
     if (!name || !baseUrl) {
       return res.status(400).json({ success: false, error: "Name and Base URL are required parameters." });
     }
@@ -521,7 +494,12 @@ app.post("/api/providers/register", async (req, res) => {
       sharedWithCommunity,
       creatorId: "my_account",
       cpmRate: parseFloat(cpmRate) || 0.20,
-      status: "active",
+      status,
+      providerType,
+      manifestPath,
+      siteId,
+      zoneId,
+      priority: priority !== undefined ? parseInt(priority, 10) : undefined,
     };
 
     await store.addProvider(newProvider);
@@ -566,6 +544,41 @@ app.get("/api/providers", async (req, res) => {
       success: true,
       providers,
     });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 4b. Seed plan CPM networks into provider registry
+app.post("/api/providers/seed-networks", async (req, res) => {
+  try {
+    const existing = await store.loadProviders();
+    const byId = new Map(existing.map((p) => [p.id, p]));
+    for (const planned of PLAN_NETWORK_PROVIDERS) {
+      if (!byId.has(planned.id)) {
+        byId.set(planned.id, planned);
+      }
+    }
+    const merged = Array.from(byId.values());
+    await store.saveProviders(merged);
+    res.json({ success: true, providers: merged, added: merged.length - existing.length });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 4c. Fetch validated manifest for a registered provider
+app.get("/api/providers/:id/manifest", async (req, res) => {
+  try {
+    const providers = await store.loadProviders();
+    const provider = providers.find((p) => p.id === req.params.id);
+    if (!provider) {
+      return res.status(404).json({ success: false, error: "Provider not found" });
+    }
+    const creatives = filterValidManifestItems(
+      await fetchProviderCreatives(provider, { surface: "vscode_statusbar" })
+    );
+    res.json({ success: true, providerId: provider.id, creatives });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1086,75 +1099,70 @@ app.get("/api/atomic/stream", async (req, res) => {
     const token = (req.query.token as string) || (req.headers["x-catbox-telemetry-token"] as string) || "";
     const isValid = verifyTelemetryToken(token);
 
-    const seedAds = [
-      { text: "NeoDeco-DB: Elegant geometric SQL schemas. Speed up Postgres by 10x.", link: "https://neodeco-db.io" },
-      { text: "Saffron-Host: Built by architects, loved by elite coders.", link: "https://saffron-host.net" },
-      { text: "Drizzle ORM: Strictly typed queries for high-performance apps.", link: "https://orm.drizzle.team" },
-      { text: "Sentry: Find exceptions before your customers do.", link: "https://sentry.io" },
-      { text: "Stripe-Escrow: Symmetric cryptographic payouts on click events.", link: "https://stripe.com" }
-    ];
+    if (isMockModeEnabled(req.query.mock as string)) {
+      const profile = await store.getProfile("my_account");
+      const selected = { text: MOCK_CPM_AD.text, link: MOCK_CPM_AD.link };
 
-    const houseAd = {
-      text: "✶ Catbox Tip: Adding 'laconic' to your AI prompts dramatically reduces output wordiness, saving thousands of tokens, runtime, and brainpower per month ↗",
-      link: "https://ai.google.dev"
-    };
+      if (isValid) {
+        markAdRendered(selected.text);
+        if (!getSystemIdleState()) {
+          const currentInstalls = profile?.installsCount || 8;
+          const splitResult = CatboxAtomicEngine.calculateMilestoneSplit(currentInstalls);
+          const grossVal = 0.06;
+          const platformFee = parseFloat(((grossVal * splitResult.platformPercent) / 100).toFixed(4));
+          const devPayout = parseFloat((grossVal - platformFee).toFixed(4));
+          const desc = `[Legitimate Impression] VS Code extension ad display: "${selected.text}" (Split: Developer ${splitResult.developerPercent}% / Platform ${splitResult.platformPercent}%)`;
+          await store.appendBlock({
+            type: "AD_IMPRESSION",
+            developerId: "my_account",
+            amount: devPayout,
+            platformCut: platformFee,
+            platformPercent: splitResult.platformPercent,
+            description: desc,
+            provider: "Catbox Atomic Engine"
+          });
+          if (profile) {
+            profile.impressionCount += 1;
+            profile.balance = parseFloat((profile.balance + devPayout).toFixed(4));
+            await store.updateProfile("my_account", profile);
+          }
+        }
+        injectCatboxVerbs(selected.text).catch(err => {
+          console.error("[Catbox Server] Fault during automatic ad injection:", err);
+        });
+      }
+
+      return res.json(buildMockStreamPayload(isValid));
+    }
 
     const profile = await store.getProfile("my_account");
-    let adsPool = [...seedAds];
-
-    const omitTips = profile?.omitHouseTips === true;
-    if (!omitTips) {
-      adsPool.push(houseAd);
-    }
-
-    const selfServePromos = profile?.selfServePromos || [];
-    selfServePromos.forEach(text => {
-      adsPool.push({ text, link: "https://catbox-db.io", isSelfServe: true } as any);
+    const providers = await store.loadProviders();
+    const selected = await selectStreamAd({
+      providers,
+      profile,
+      signedTelemetryVerified: isValid,
+      useProviderNetworks: true,
     });
 
-    const userLinks = profile?.affiliateLinks || {};
-    const prioritizedAds: any[] = [];
-
-    if (userLinks.neon) {
-      const matched = adsPool.find(a => a.link && a.link.includes("neodeco-db.io"));
-      if (matched) {
-        prioritizedAds.push({ ...matched, link: userLinks.neon });
-      }
-    }
-
-    if (userLinks.supabase) {
-      const matched = adsPool.find(a => a.link && a.link.includes("saffron-host.net"));
-      if (matched) {
-        prioritizedAds.push({ ...matched, link: userLinks.supabase });
-      }
-    }
-
-    let selected: any = { text: "Catbox: Open kickbacks platform", link: "https://catbox-db.io" };
-    if (prioritizedAds.length > 0) {
-      selected = prioritizedAds[Math.floor(Math.random() * prioritizedAds.length)];
-    } else if (adsPool.length > 0) {
-      selected = adsPool[Math.floor(Math.random() * adsPool.length)];
-    }
-
     if (isValid) {
-      markAdRendered(selected.text);
-      
+      markAdRendered(selected.creativeText);
+
       if (getSystemIdleState()) {
-        console.log(`[Catbox Telemetry Server] System is IDLE. Served ad: "${selected.text}" without ledger storage.`);
+        console.log(`[Catbox Telemetry Server] System is IDLE. Served ad: "${selected.creativeText}" without ledger storage.`);
       } else {
         const isSelfServe = selected.isSelfServe === true;
         const currentInstalls = profile?.installsCount || 8;
-        
+
         const splitResult = CatboxAtomicEngine.calculateMilestoneSplit(currentInstalls);
         const activePlatformFeePercent = isSelfServe ? 0 : splitResult.platformPercent;
-        
+
         const grossVal = 0.06;
-        
+
         if (isSelfServe) {
           const viewCost = grossVal;
           const platformFee = 0.0;
-          
-          const desc = `[Self-Serve Promo] Impression served for custom creative: "${selected.text}" (0% Platform Fee penalty)`;
+
+          const desc = `[Self-Serve Promo] Impression served for custom creative: "${selected.creativeText}" (0% Platform Fee penalty)`;
           await store.appendBlock({
             type: "AD_IMPRESSION",
             developerId: "my_account",
@@ -1164,7 +1172,7 @@ app.get("/api/atomic/stream", async (req, res) => {
             description: desc,
             provider: "Catbox Self-Serve Engine"
           });
-          
+
           if (profile) {
             profile.impressionCount += 1;
             profile.balance = parseFloat(Math.max(0, profile.balance - viewCost).toFixed(4));
@@ -1174,8 +1182,9 @@ app.get("/api/atomic/stream", async (req, res) => {
         } else {
           const platformFee = parseFloat(((grossVal * activePlatformFeePercent) / 100).toFixed(4));
           const devPayout = parseFloat((grossVal - platformFee).toFixed(4));
+          const providerLabel = selected.providerName || "Catbox Atomic Engine";
 
-          const desc = `[Legitimate Impression] VS Code extension ad display: "${selected.text}" (Split: Developer ${splitResult.developerPercent}% / Platform ${splitResult.platformPercent}%)`;
+          const desc = `[Legitimate Impression] VS Code extension ad display: "${selected.creativeText}" (Split: Developer ${splitResult.developerPercent}% / Platform ${splitResult.platformPercent}%)`;
           await store.appendBlock({
             type: "AD_IMPRESSION",
             developerId: "my_account",
@@ -1183,7 +1192,7 @@ app.get("/api/atomic/stream", async (req, res) => {
             platformCut: platformFee,
             platformPercent: activePlatformFeePercent,
             description: desc,
-            provider: "Catbox Atomic Engine"
+            provider: providerLabel
           });
 
           if (profile) {
@@ -1193,10 +1202,23 @@ app.get("/api/atomic/stream", async (req, res) => {
           }
           console.log(`[Catbox Telemetry Server] Legitimate Impression verified and logged.`);
         }
+
+        if (shouldReportToProvider(selected)) {
+          await reportProviderEvent({
+            eventId: crypto.randomUUID(),
+            type: "impression",
+            providerId: selected.providerId!,
+            providerType: selected.providerType || "custom",
+            creativeId: selected.id || "unknown",
+            campaignId: selected.campaign_id,
+            surface: "vscode_statusbar",
+            timestamp: new Date().toISOString(),
+          });
+        }
       }
 
-      if (selected.text !== houseAd.text) {
-        injectCatboxVerbs(selected.text).catch(err => {
+      if (selected.creativeText !== HOUSE_AD.text) {
+        injectCatboxVerbs(selected.creativeText).catch(err => {
           console.error("[Catbox Server] Fault during automatic ad injection:", err);
         });
       }
@@ -1204,17 +1226,7 @@ app.get("/api/atomic/stream", async (req, res) => {
       console.warn("[Catbox Telemetry Server] Invalid or missing signed daily telemetry token. Blocking ledger logging!");
     }
 
-    res.json({
-      success: true,
-      adMessage: selected.text,
-      creativeText: selected.text,
-      targetUrl: selected.link,
-      link: selected.link,
-      cpmEst: 0.28,
-      hashType: "SHA-256",
-      timestamp: new Date().toISOString(),
-      signedTelemetryVerified: isValid
-    });
+    res.json(selected);
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -1222,7 +1234,16 @@ app.get("/api/atomic/stream", async (req, res) => {
 
 app.post("/api/atomic/report-click", async (req, res) => {
   try {
-    const { creativeText, url, clickedAt } = req.body;
+    const {
+      creativeText,
+      url,
+      clickedAt,
+      providerId,
+      providerType,
+      creativeId,
+      campaignId,
+      eventId,
+    } = req.body;
     console.log(`[Catbox Server Reporting] Ad click registered: "${creativeText}" -> ${url} at ${clickedAt}`);
     
     const profile = await store.getProfile("my_account");
@@ -1240,13 +1261,26 @@ app.post("/api/atomic/report-click", async (req, res) => {
       platformCut: platformFee,
       platformPercent: activePlatformFeePercent,
       description: desc,
-      provider: "Catbox Atomic Engine"
+      provider: providerId ? String(providerId) : "Catbox Atomic Engine"
     });
 
     if (profile) {
       profile.clickCount += 1;
       profile.balance = parseFloat((profile.balance + devPayout).toFixed(4));
       await store.updateProfile("my_account", profile);
+    }
+
+    if (providerId && providerType && creativeId) {
+      await reportProviderEvent({
+        eventId: eventId || crypto.randomUUID(),
+        type: "click",
+        providerId: String(providerId),
+        providerType: String(providerType),
+        creativeId: String(creativeId),
+        campaignId: campaignId ? String(campaignId) : undefined,
+        surface: "vscode_statusbar",
+        timestamp: clickedAt || new Date().toISOString(),
+      });
     }
 
     res.json({
@@ -1422,7 +1456,10 @@ async function startServer() {
   await initializeTelemetryStore();
   await initializeIdleDetector();
 
-  const atomicEngine = new CatboxAtomicEngine(() => store.cachedProfiles["my_account"]);
+  const atomicEngine = new CatboxAtomicEngine({
+    getProfile: () => store.cachedProfiles["my_account"],
+    loadProviders: () => store.loadProviders(),
+  });
   atomicEngine.startIsolatedServer(5176);
 
   if (process.env.NODE_ENV !== "production") {

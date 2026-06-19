@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="200" viewBox="0 0 260 200">
+  <rect width="260" height="200" fill="#1a1f2e"/>
+  <rect x="12" y="12" width="236" height="176" rx="8" fill="#252b3d" stroke="#c29334" stroke-width="2"/>
+  <text x="130" y="88" text-anchor="middle" fill="#ebd8aa" font-family="system-ui,sans-serif" font-size="14" font-weight="600">Catbox Sponsor</text>
+  <text x="130" y="112" text-anchor="middle" fill="#9aa4b8" font-family="system-ui,sans-serif" font-size="11">260 � 200 � dev placeholder</text>
+  <circle cx="130" cy="148" r="18" fill="#c29334" opacity="0.35"/>
+  <text x="130" y="153" text-anchor="middle" fill="#ebd8aa" font-size="16">�</text>
+</svg>

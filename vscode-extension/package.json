@@ -1,8 +1,8 @@
 {
   "name": "catbox-vscode",
   "displayName": "Catbox Status Bar Streamer",
-  "description": "Text-native status bar ads and optional pets-sized visual sponsor panel.",
-  "version": "1.4.0",
+  "description": "Text-native status bar ads, opt-in Claude Code spinner support, and optional visual sponsor panel.",
+  "version": "1.5.0",
   "publisher": "Catbox",
   "license": "AGPL-3.0-only",
   "engines": {
@@ -19,6 +19,16 @@
     "configuration": {
       "title": "Catbox",
       "properties": {
+        "catbox.serverUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:3000",
+          "description": "Local Catbox daemon URL used for sponsor fetch and telemetry."
+        },
+        "catbox.claudeInjection.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Opt in to writing the current sponsor line into ~/.claude/settings.json spinnerVerbs."
+        },
         "catbox.visualAd.enabled": {
           "type": "boolean",
           "default": false,
@@ -49,6 +59,21 @@
       {
         "command": "catbox.openAd",
         "title": "Catbox: Open Sponsor Asset",
+        "category": "Catbox"
+      },
+      {
+        "command": "catbox.enableClaudeInjection",
+        "title": "Catbox: Enable Claude Code Spinner Ads",
+        "category": "Catbox"
+      },
+      {
+        "command": "catbox.disableClaudeInjection",
+        "title": "Catbox: Disable Claude Code Spinner Ads",
+        "category": "Catbox"
+      },
+      {
+        "command": "catbox.revertClaudeSettings",
+        "title": "Catbox: Restore Claude Code Settings",
         "category": "Catbox"
       },
       {

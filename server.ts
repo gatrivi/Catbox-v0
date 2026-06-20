@@ -31,6 +31,13 @@ import {
   reportProviderEvent,
   shouldReportToProvider,
 } from "./src/server/providers/reporting";
+import { getAtomicMetricsPayload, getEngineHealthPayload } from "./src/server/healthPayload";
+import {
+  renderDashboardPage,
+  renderLandingPage,
+  renderSponsorsPage,
+  sendHtml,
+} from "./src/server/publicPages";
 
 
 const app = express();
@@ -1448,6 +1455,30 @@ app.post("/api/telemetry/touch", async (req, res) => {
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
+});
+
+app.get("/api/health", (_req, res) => {
+  res.json(getEngineHealthPayload());
+});
+
+app.get("/api/atomic/metrics", (_req, res) => {
+  res.json(getAtomicMetricsPayload());
+});
+
+app.get("/api/atomic/config", (_req, res) => {
+  res.status(404).json({ success: false, error: "Not implemented" });
+});
+
+app.get("/", (_req, res) => {
+  sendHtml(res, renderLandingPage());
+});
+
+app.get("/sponsors", (_req, res) => {
+  sendHtml(res, renderSponsorsPage());
+});
+
+app.get("/dashboard", (_req, res) => {
+  sendHtml(res, renderDashboardPage());
 });
 
 // Start server

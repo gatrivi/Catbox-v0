@@ -32,6 +32,9 @@ let visualViewableTracked = false;
 
 const TELEMETRY_SECRET = "catbox_daily_gold_secret";
 const MAIN_SERVER = "http://127.0.0.1:3000";
+const VISUAL_PANEL_IMAGE = "assets/sponsor-ad-1.jpeg";
+const VISUAL_PANEL_LINK = "https://www.instagram.com/lastortasdemamamabel";
+const VISUAL_PANEL_COPY = "Las Tortas de Mamá Mabel";
 
 function isVisualAdEnabled(): boolean {
   return vscode.workspace.getConfiguration("catbox").get<boolean>("visualAd.enabled") === true;
@@ -125,11 +128,21 @@ function scheduleViewableTracking(
 
 async function onAdDisplayed(surface: TelemetrySurface): Promise<void> {
   await touchActivity();
+  if (surface === "visual_panel") {
+    await emitTelemetry("impression_rendered", "visual_panel_default", "visual_panel_house", surface);
+    scheduleViewableTracking("visual_panel_default", "visual_panel_house", surface);
+    return;
+  }
   await emitTelemetry("impression_rendered", currentAd.id, currentAd.campaignId, surface);
   scheduleViewableTracking(currentAd.id, currentAd.campaignId, surface);
 }
 
 async function reportClick(surface: TelemetrySurface): Promise<void> {
+  if (surface === "visual_panel") {
+    await reportVisualPanelClick();
+    return;
+  }
+
   if (!currentAd.link) return;
 
   vscode.env.openExternal(vscode.Uri.parse(currentAd.link));
@@ -158,6 +171,34 @@ async function reportClick(surface: TelemetrySurface): Promise<void> {
   await emitTelemetry("click", currentAd.id, currentAd.campaignId, surface);
 }
 
+async function reportVisualPanelClick(): Promise<void> {
+  const adId = "visual_panel_default";
+  const campaignId = "visual_panel_house";
+
+  vscode.env.openExternal(vscode.Uri.parse(VISUAL_PANEL_LINK));
+
+  try {
+    await fetch(`${MAIN_SERVER}/api/atomic/report-click`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        creativeText: VISUAL_PANEL_COPY,
+        url: VISUAL_PANEL_LINK,
+        clickedAt: new Date().toISOString(),
+        creativeId: adId,
+        campaignId,
+        eventId: crypto.randomUUID(),
+        surface: "visual_panel",
+      }),
+    });
+  } catch (err) {
+    console.warn("[Catbox Extension] Click report offline:", err);
+  }
+
+  await touchActivity();
+  await emitTelemetry("click", adId, campaignId, "visual_panel");
+}
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -168,19 +209,19 @@ function escapeHtml(value: string): string {
 
 class CatboxVisualAdProvider implements vscode.WebviewViewProvider {
   private view?: vscode.WebviewView;
-  private placeholderWebviewUri = "";
+  private visualImageUri = "";
 
   constructor(private readonly extensionUri: vscode.Uri) {}
 
-  setPlaceholderUri(uri: vscode.Uri): void {
-    this.placeholderWebviewUri = uri.toString();
+  setVisualImageUri(uri: vscode.Uri): void {
+    this.visualImageUri = uri.toString();
   }
 
   resolveWebviewView(webviewView: vscode.WebviewView): void {
     this.view = webviewView;
-    this.setPlaceholderUri(
+    this.setVisualImageUri(
       webviewView.webview.asWebviewUri(
-        vscode.Uri.joinPath(this.extensionUri, "assets", "visual-placeholder.svg")
+        vscode.Uri.joinPath(this.extensionUri, ...VISUAL_PANEL_IMAGE.split("/"))
       )
     );
     webviewView.webview.options = {
@@ -217,8 +258,8 @@ class CatboxVisualAdProvider implements vscode.WebviewViewProvider {
   private render(): void {
     if (!this.view) return;
 
-    const imageSrc = currentAd.imageUrl || this.placeholderWebviewUri;
-    const safeText = escapeHtml(currentAd.text);
+    const imageSrc = this.visualImageUri;
+    const safeText = escapeHtml(VISUAL_PANEL_COPY);
     const safeImage = escapeHtml(imageSrc);
 
     this.view.webview.html = `<!DOCTYPE html>

@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import http from "http";
 import crypto from "crypto";
+import { getAtomicMetricsPayload, getEngineHealthPayload } from "../server/healthPayload";
 import { buildMockStreamPayload, isMockModeEnabled } from "../server/mockCpmAd";
 import { selectStreamAd } from "../server/adSelection";
 import type { AdProvider } from "../types";
@@ -39,18 +40,14 @@ export class CatboxAtomicEngine {
    * Configures endpoint routers for the VS Code extension store client queries
    */
   private setupRoutes() {
-    this.app.get("/", (req, res) => {
-      res.json({
-        engine: "Catbox Atomic Brokerage Server",
-        status: "ACTIVE",
-        version: "1.2.0-atomic",
-        targetPlatform: "VS Code Extension Store & Claude Code Prompt Wheel",
-        endpoints: {
-          metrics: "/api/atomic/metrics",
-          adStream: "/api/atomic/stream",
-          configuration: "/api/atomic/config"
-        }
-      });
+    this.app.get("/api/health", (_req, res) => {
+      res.json(getEngineHealthPayload());
+    });
+
+    this.app.get("/", (_req, res) => {
+      res.type("html").send(
+        "<!DOCTYPE html><html><body><p>Catbox atomic daemon. See <a href=\"/api/health\">/api/health</a>.</p></body></html>"
+      );
     });
 
     // Endpoint for VS Code Extension to fetch randomized target CPM ad messages
@@ -114,16 +111,8 @@ export class CatboxAtomicEngine {
       });
     });
 
-    this.app.get("/api/atomic/metrics", (req, res) => {
-      res.json({
-        success: true,
-        metrics: {
-          throughput: "24.5 keps",
-          latencyMs: 1.4,
-          networkFee: "0.00 USD (Symmetric gas free)",
-          complianceRating: "GDPR SOC2 Secure"
-        }
-      });
+    this.app.get("/api/atomic/metrics", (_req, res) => {
+      res.json(getAtomicMetricsPayload());
     });
   }
 

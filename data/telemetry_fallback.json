@@ -4068,5 +4068,545 @@
     "surface": "statusbar",
     "type": "impression_rendered",
     "visible_duration_ms": 0
+  },
+  {
+    "event_id": "ddb03427-711b-4253-b890-cab477adf75e",
+    "user_id": "my_account",
+    "ad_id": "fb_deco_db",
+    "campaign_id": "campaign_prov_carbon_cli",
+    "timestamp": "2026-06-20T01:20:16.293Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "4c497e5d-4283-4813-b8fb-769d49073ff9",
+    "user_id": "my_account",
+    "ad_id": "fb_deco_db",
+    "campaign_id": "campaign_prov_carbon_cli",
+    "timestamp": "2026-06-20T01:20:20.616Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "f1b46ac9-4c46-4f56-8540-b5e34948be41",
+    "user_id": "my_account",
+    "ad_id": "fb_deco_db",
+    "campaign_id": "campaign_prov_carbon_cli",
+    "timestamp": "2026-06-20T01:20:20.654Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "772bb560-f594-4e93-985e-c3aa94b5eed3",
+    "user_id": "my_account",
+    "ad_id": "fb_deco_db",
+    "campaign_id": "campaign_prov_carbon_cli",
+    "timestamp": "2026-06-20T01:20:20.665Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "b3703939-049c-42eb-a23b-e19768bb3617",
+    "user_id": "my_account",
+    "ad_id": "fb_deco_db",
+    "campaign_id": "campaign_prov_carbon_cli",
+    "timestamp": "2026-06-20T01:20:21.305Z",
+    "surface": "statusbar",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "5b244556-7dc9-4d2b-8f88-eb638cf51aa9",
+    "user_id": "my_account",
+    "ad_id": "fb_deco_db",
+    "campaign_id": "campaign_prov_carbon_cli",
+    "timestamp": "2026-06-20T01:20:25.675Z",
+    "surface": "visual_panel",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "d11f5fcf-ef66-46a4-b97a-271f1cf190ce",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T01:21:16.764Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "466d0d7f-fa1e-4070-8822-8944eb8af4e9",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T01:21:16.776Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "1cf49e59-3d56-4c97-83e3-b5a89e9ebe71",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T01:21:21.779Z",
+    "surface": "statusbar",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "a4d0f87d-6c26-49e7-89a5-206c7672f910",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T01:21:21.785Z",
+    "surface": "visual_panel",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "58d1c1fb-6c7a-415d-9245-810efc59659e",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T01:22:16.064Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "92485094-618b-4c40-bd05-d5cb36855dd1",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T01:22:16.073Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "19f12962-9023-49af-b4bc-37d45af02f2f",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T01:23:17.148Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "ee2ad0c6-ae99-47b6-9e9f-f01dcb6f3b1b",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T01:23:17.156Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "539e653f-d495-4740-bc64-bf2f3989619e",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T01:23:22.163Z",
+    "surface": "visual_panel",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "76125622-33b5-4ad9-bc2b-dbb9354a713a",
+    "user_id": "my_account",
+    "ad_id": "bsa_terminal_neon",
+    "campaign_id": "campaign_prov_buysellads",
+    "timestamp": "2026-06-20T01:24:15.934Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "da6c576e-2081-4250-9365-0909c7596b66",
+    "user_id": "my_account",
+    "ad_id": "bsa_terminal_neon",
+    "campaign_id": "campaign_prov_buysellads",
+    "timestamp": "2026-06-20T01:24:15.944Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "e6c121c0-a13f-40a8-93c8-fe91fd375cee",
+    "user_id": "my_account",
+    "ad_id": "bsa_terminal_neon",
+    "campaign_id": "campaign_prov_buysellads",
+    "timestamp": "2026-06-20T01:24:20.949Z",
+    "surface": "statusbar",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "8d50428c-8668-4ccd-a6ab-0582aea6b96a",
+    "user_id": "my_account",
+    "ad_id": "bsa_terminal_neon",
+    "campaign_id": "campaign_prov_buysellads",
+    "timestamp": "2026-06-20T01:24:20.952Z",
+    "surface": "visual_panel",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "b73bb52b-0f60-460e-b2e2-eef8786183c3",
+    "user_id": "my_account",
+    "ad_id": "bsa_terminal_render",
+    "campaign_id": "campaign_prov_buysellads",
+    "timestamp": "2026-06-20T01:25:17.938Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "8fbbb593-6cbf-43a8-a469-1513a04777af",
+    "user_id": "my_account",
+    "ad_id": "bsa_terminal_render",
+    "campaign_id": "campaign_prov_buysellads",
+    "timestamp": "2026-06-20T01:25:17.950Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "d7703326-a054-4277-a07b-cc4fea30bef5",
+    "user_id": "my_account",
+    "ad_id": "bsa_terminal_render",
+    "campaign_id": "campaign_prov_buysellads",
+    "timestamp": "2026-06-20T01:25:22.955Z",
+    "surface": "statusbar",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "8c4a3cec-b244-49fb-aa62-8adafe00deba",
+    "user_id": "my_account",
+    "ad_id": "bsa_terminal_render",
+    "campaign_id": "campaign_prov_buysellads",
+    "timestamp": "2026-06-20T01:25:22.957Z",
+    "surface": "visual_panel",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "7e9e576a-f0cf-47d6-a3e8-b18e69bee259",
+    "user_id": "my_account",
+    "ad_id": "fb_saffron_host",
+    "campaign_id": "campaign_prov_carbon_cli",
+    "timestamp": "2026-06-20T01:26:15.399Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "1fd6f2f6-f8c2-4707-9c08-2a9ee631e878",
+    "user_id": "my_account",
+    "ad_id": "fb_saffron_host",
+    "campaign_id": "campaign_prov_carbon_cli",
+    "timestamp": "2026-06-20T01:26:15.409Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "2ce4a222-f211-425f-98a9-313c98aed0b2",
+    "user_id": "my_account",
+    "ad_id": "fb_saffron_host",
+    "campaign_id": "campaign_prov_carbon_cli",
+    "timestamp": "2026-06-20T01:26:20.419Z",
+    "surface": "visual_panel",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "c8c7022b-53ab-4547-87fc-34f6e45684d9",
+    "user_id": "my_account",
+    "ad_id": "fb_saffron_host",
+    "campaign_id": "campaign_prov_paved",
+    "timestamp": "2026-06-20T01:27:17.448Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "63d28422-743d-479f-a337-59785d883f7d",
+    "user_id": "my_account",
+    "ad_id": "fb_saffron_host",
+    "campaign_id": "campaign_prov_paved",
+    "timestamp": "2026-06-20T01:27:17.456Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "a6c9573f-b4e4-4847-a0b7-f0efe6b1150b",
+    "user_id": "my_account",
+    "ad_id": "fb_saffron_host",
+    "campaign_id": "campaign_prov_paved",
+    "timestamp": "2026-06-20T01:27:22.453Z",
+    "surface": "statusbar",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "1989eee1-62b8-4a84-bf19-ae5e6bfb56d1",
+    "user_id": "my_account",
+    "ad_id": "fb_saffron_host",
+    "campaign_id": "campaign_prov_paved",
+    "timestamp": "2026-06-20T01:27:22.469Z",
+    "surface": "visual_panel",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "3a1e483c-3b60-48d7-bafd-3329f98238c9",
+    "user_id": "my_account",
+    "ad_id": "fb_deco_db",
+    "campaign_id": "campaign_prov_carbon_cli",
+    "timestamp": "2026-06-20T01:28:16.244Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "740e4eb3-27c0-4723-be12-e6b0621b9065",
+    "user_id": "my_account",
+    "ad_id": "fb_deco_db",
+    "campaign_id": "campaign_prov_carbon_cli",
+    "timestamp": "2026-06-20T01:28:16.256Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "ad3ea7bc-2c51-4519-ac17-c9dcca646167",
+    "user_id": "my_account",
+    "ad_id": "fb_deco_db",
+    "campaign_id": "campaign_prov_carbon_cli",
+    "timestamp": "2026-06-20T01:28:21.253Z",
+    "surface": "statusbar",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "f88ef126-8009-4332-b47f-804e9ca1ac37",
+    "user_id": "my_account",
+    "ad_id": "fb_deco_db",
+    "campaign_id": "campaign_prov_carbon_cli",
+    "timestamp": "2026-06-20T01:28:21.269Z",
+    "surface": "visual_panel",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "c57dc78c-1dea-4c05-bc3f-e502a43b0094",
+    "user_id": "my_account",
+    "ad_id": "fb_saffron_host",
+    "campaign_id": "campaign_prov_paved",
+    "timestamp": "2026-06-20T01:29:16.667Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "8ab6ce14-7b8d-44eb-9ed1-b7ea3460e72a",
+    "user_id": "my_account",
+    "ad_id": "fb_saffron_host",
+    "campaign_id": "campaign_prov_paved",
+    "timestamp": "2026-06-20T01:29:16.678Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "17288438-869c-4a4b-8e67-751e35ac9e42",
+    "user_id": "my_account",
+    "ad_id": "fb_saffron_host",
+    "campaign_id": "campaign_prov_paved",
+    "timestamp": "2026-06-20T01:29:21.688Z",
+    "surface": "visual_panel",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "297219f2-992a-4f37-9d1d-2afa0723e5d1",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T01:30:15.944Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "b8bb6cf7-5d2f-4b17-8131-30225049edd9",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T01:30:15.954Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "4aac9c8a-458b-4b0e-9f37-d2b1e40af3a3",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T01:30:20.954Z",
+    "surface": "statusbar",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "3fedce44-e63d-4bfe-820a-2d247bb45f4b",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T01:30:20.970Z",
+    "surface": "visual_panel",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "f4a91ae5-d854-493b-9340-a59e5b339745",
+    "user_id": "my_account",
+    "ad_id": "fb_saffron_host",
+    "campaign_id": "campaign_prov_carbon_cli",
+    "timestamp": "2026-06-20T01:31:16.943Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "24360cdb-c691-426e-b18e-13bf234ea046",
+    "user_id": "my_account",
+    "ad_id": "fb_saffron_host",
+    "campaign_id": "campaign_prov_carbon_cli",
+    "timestamp": "2026-06-20T01:31:16.954Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "8965b0b9-2ffb-48e4-918c-17d22036af7b",
+    "user_id": "my_account",
+    "ad_id": "fb_saffron_host",
+    "campaign_id": "campaign_prov_carbon_cli",
+    "timestamp": "2026-06-20T01:31:21.955Z",
+    "surface": "statusbar",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "642fe833-394b-42f0-8cfb-dac5e4b60b79",
+    "user_id": "my_account",
+    "ad_id": "fb_saffron_host",
+    "campaign_id": "campaign_prov_carbon_cli",
+    "timestamp": "2026-06-20T01:31:21.961Z",
+    "surface": "visual_panel",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "dbe29c42-964f-4b36-aa41-557410c9a40f",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T01:32:17.730Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "36d6f03a-eb45-4bf7-aaee-98135ba04241",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T01:32:17.740Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "33642bfd-8d80-4141-9e23-20ebdb670027",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T01:32:22.753Z",
+    "surface": "visual_panel",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "8bbe6373-e192-4952-be44-b58bef033aad",
+    "user_id": "my_account",
+    "ad_id": "fb_drizzle_typed",
+    "campaign_id": "campaign_prov_paved",
+    "timestamp": "2026-06-20T01:33:15.835Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "f172978a-a69e-4673-97b0-db0bedca84c7",
+    "user_id": "my_account",
+    "ad_id": "fb_drizzle_typed",
+    "campaign_id": "campaign_prov_paved",
+    "timestamp": "2026-06-20T01:33:15.847Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "75e20793-c5dc-48e0-b1de-8e838a82c146",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T01:34:15.452Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "84b99b94-cb27-487a-9950-52d2625a1a3c",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T01:34:15.462Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "b94eec1e-c011-4509-821b-ff7db445e47a",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T01:34:20.466Z",
+    "surface": "statusbar",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "1486e6e9-56ee-446e-b0fe-b229455c730e",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T01:34:20.468Z",
+    "surface": "visual_panel",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
   }
 ]

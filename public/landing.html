@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Catbox — Get paid for waiting</title>
+  <meta name="description" content="Open-source developer ad monetization. Text sponsorships in IDE and CLI. 85% revenue to you. No tracking." />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d0d0d;
+      --surface: #111;
+      --border: #2a2a2a;
+      --border-subtle: #1e1e1e;
+      --text: #e0e0e0;
+      --text-muted: #9a9a9a;
+      --text-dim: #6e6e6e;
+      --green: #00ff88;
+      --green-dim: #00ff8844;
+      --red: #ff5f57;
+      --font-mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+      --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    body { font-family: var(--font-mono); background: var(--bg); }
+    a { color: inherit; }
+    .page { background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 2rem;
+      border-bottom: 0.5px solid #222;
+      gap: 1rem;
+    }
+    .logo { color: var(--green); font-size: 18px; font-weight: 500; letter-spacing: -0.5px; text-decoration: none; }
+    .nav-links { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+    .nav-links a { color: var(--text-muted); font-size: 13px; text-decoration: none; }
+    .nav-links a:hover { color: var(--text); }
+
+    .hero { padding: 5rem 2rem 3rem; max-width: 680px; margin: 0 auto; }
+    .badge {
+      display: inline-block;
+      background: #0a2a1a;
+      color: var(--green);
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 0.5px solid var(--green-dim);
+      margin-bottom: 1.5rem;
+    }
+    h1 { font-size: 32px; font-weight: 500; line-height: 1.25; color: #fff; margin-bottom: 1rem; }
+    h1 span { color: var(--green); }
+    .sub { font-size: 15px; color: var(--text-muted); line-height: 1.7; margin-bottom: 2rem; font-family: var(--font-sans); }
+
+    .terminal {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .term-bar { display: flex; gap: 6px; margin-bottom: 1rem; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .d1 { background: var(--red); }
+    .d2 { background: #febc2e; }
+    .d3 { background: #28c840; }
+    .term-line { font-size: 13px; color: var(--text-muted); margin-bottom: 4px; line-height: 1.5; word-break: break-word; }
+    .term-line:last-child { margin-bottom: 0; }
+    .term-line .muted { color: var(--text-dim); }
+    .term-line .ad { color: var(--green); }
+
+    .install-box {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .install-cmd { font-size: 14px; color: var(--green); line-height: 1.4; }
+    .install-cmd a { color: var(--green); text-decoration: none; }
+    .install-cmd a:hover { text-decoration: underline; }
+    .copy-btn {
+      font-size: 11px;
+      color: var(--text-muted);
+      border: 0.5px solid #333;
+      background: transparent;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      flex-shrink: 0;
+    }
+    .copy-btn:hover { color: var(--text); border-color: #555; }
+
+    .cta-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 3rem; }
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: var(--font-mono);
+      font-weight: 500;
+      text-decoration: none;
+      text-align: center;
+      cursor: pointer;
+      border: 0.5px solid transparent;
+    }
+    .btn-primary { background: var(--green); color: var(--bg); }
+    .btn-primary:hover { background: #00e67a; }
+    .btn-outline { background: transparent; color: var(--text); border-color: #333; }
+    .btn-outline:hover { border-color: #555; color: #fff; }
+    .btn-advertise { background: transparent; color: var(--green); border-color: var(--green-dim); }
+    .btn-advertise:hover { border-color: var(--green); }
+
+    .divider { border: none; border-top: 0.5px solid #1a1a1a; margin: 0 2rem 3rem; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      max-width: 680px;
+      margin: 0 auto 3rem;
+      padding: 0 2rem;
+    }
+    .stat { background: var(--surface); border: 0.5px solid var(--border-subtle); border-radius: 8px; padding: 1rem; }
+    .stat-num { font-size: 24px; font-weight: 500; color: var(--green); margin-bottom: 4px; }
+    .stat-label { font-size: 12px; color: var(--text-muted); font-family: var(--font-sans); }
+
+    .section { max-width: 680px; margin: 0 auto 3rem; padding: 0 2rem; }
+    .section-title { font-size: 13px; color: var(--text-muted); margin-bottom: 1rem; letter-spacing: 1px; text-transform: uppercase; }
+
+    .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .comp-card { background: var(--surface); border: 0.5px solid var(--border-subtle); border-radius: 8px; padding: 1rem; }
+    .comp-card.us { border-color: var(--green-dim); }
+    .comp-name { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
+    .comp-name.us { color: var(--green); }
+    .comp-pct { font-size: 28px; font-weight: 500; color: #fff; }
+    .comp-pct.bad { color: var(--red); }
+    .comp-pct.good { color: var(--green); }
+    .comp-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; font-family: var(--font-sans); }
+
+    .sponsor-note {
+      max-width: 680px;
+      margin: 0 auto 3rem;
+      padding: 0 2rem;
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      font-family: var(--font-sans);
+    }
+    .sponsor-note strong { color: var(--text); font-weight: 500; }
+
+    .footer {
+      border-top: 0.5px solid #1a1a1a;
+      padding: 1.5rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .footer-left { font-size: 12px; color: var(--text-dim); }
+    .footer-links { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .footer-links a { font-size: 12px; color: var(--text-dim); text-decoration: none; }
+    .footer-links a:hover { color: var(--text-muted); }
+
+    @media (max-width: 640px) {
+      .nav {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1rem 1.25rem;
+      }
+      .nav-links { gap: 1rem; }
+      .hero { padding: 2.5rem 1.25rem 2rem; }
+      h1 { font-size: 26px; }
+      .sub { font-size: 14px; }
+      .terminal { padding: 1rem 1.25rem; }
+      .term-line { font-size: 12px; }
+      .install-box {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 1rem 1.25rem;
+      }
+      .copy-btn { align-self: flex-end; }
+      .cta-row { flex-direction: column; margin-bottom: 2rem; }
+      .btn { width: 100%; }
+      .divider { margin: 0 1.25rem 2rem; }
+      .stats {
+        grid-template-columns: 1fr;
+        padding: 0 1.25rem;
+        margin-bottom: 2rem;
+      }
+      .section { padding: 0 1.25rem; margin-bottom: 2rem; }
+      .compare { grid-template-columns: 1fr; }
+      .sponsor-note { padding: 0 1.25rem; margin-bottom: 2rem; }
+      .footer {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1.25rem;
+      }
+    }
+
+    @media (max-width: 400px) {
+      h1 { font-size: 22px; }
+      .stat-num { font-size: 20px; }
+      .comp-pct { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <nav class="nav">
+      <a class="logo" href="/landing.html">✶ catbox</a>
+      <div class="nav-links">
+        <a href="https://github.com/gatrivi/catbox-v0#readme">docs</a>
+        <a href="https://github.com/gatrivi/catbox-v0">github</a>
+        <a href="#advertise">advertise</a>
+      </div>
+    </nav>
+
+    <div class="hero">
+      <div class="badge">open source · AGPLv3 · early alpha</div>
+      <h1>Your terminal wait-states<br>should <span>pay you.</span></h1>
+      <p class="sub">Catbox injects non-intrusive text ads into Claude Code spinner states. Engineers earn 85% of every impression. No tracking. No popups. No BS.</p>
+
+      <div class="terminal" aria-label="Terminal demo">
+        <div class="term-bar">
+          <div class="dot d1"></div>
+          <div class="dot d2"></div>
+          <div class="dot d3"></div>
+        </div>
+        <div class="term-line"><span class="muted">$ claude "refactor auth module"</span></div>
+        <div class="term-line"><span class="ad">✶ Neon — Serverless Postgres, scale to zero ↗</span></div>
+        <div class="term-line"><span class="muted">  thinking... +$0.0021 earned</span></div>
+      </div>
+
+      <div class="install-box">
+        <span class="install-cmd" id="install-cmd">alpha install coming soon — <a href="https://github.com/gatrivi/catbox-v0">install from github →</a></span>
+        <button class="copy-btn" type="button" id="copy-btn" data-copy="https://github.com/gatrivi/catbox-v0">copy</button>
+      </div>
+
+      <div class="cta-row">
+        <a class="btn btn-primary" href="https://github.com/gatrivi/catbox-v0">install alpha →</a>
+        <a class="btn btn-advertise" href="#advertise">advertise →</a>
+        <a class="btn btn-outline" href="https://github.com/gatrivi/catbox-v0">view on github</a>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-num">85%</div>
+        <div class="stat-label">revenue to you</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">0</div>
+        <div class="stat-label">tracking pixels</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">AGPLv3</div>
+        <div class="stat-label">fully open source</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">vs the alternative</div>
+      <div class="compare">
+        <div class="comp-card">
+          <div class="comp-name">kickbacks.ai</div>
+          <div class="comp-pct bad">50%</div>
+          <div class="comp-sub">you keep half. they keep half.</div>
+        </div>
+        <div class="comp-card us">
+          <div class="comp-name us">catbox</div>
+          <div class="comp-pct good">85%</div>
+          <div class="comp-sub">you keep almost everything.</div>
+        </div>
+      </div>
+    </div>
+
+    <p class="sponsor-note" id="advertise">
+      <strong>For sponsors:</strong> single-line text placements in VS Code status bars and CLI streams — surfaces ad blockers never reach. 80-char creative + HTTPS link. <a href="mailto:gatrivi@gmail.com?subject=Catbox%20sponsorship" style="color: var(--green);">gatrivi@gmail.com</a>
+    </p>
+
+    <footer class="footer">
+      <span class="footer-left">catbox · open source · built for devs</span>
+      <div class="footer-links">
+        <a href="https://github.com/gatrivi/catbox-v0">github</a>
+        <a href="https://github.com/gatrivi/catbox-v0/blob/main/LICENSE">license</a>
+        <a href="mailto:gatrivi@gmail.com?subject=Catbox%20advertising">advertise</a>
+        <a href="/">dashboard</a>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById("copy-btn").addEventListener("click", function () {
+      var url = this.getAttribute("data-copy");
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url);
+      }
+    });
+  </script>
+</body>
+</html>

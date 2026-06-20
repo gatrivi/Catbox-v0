@@ -33,10 +33,112 @@ __export(index_exports, {
   deactivate: () => deactivate
 });
 module.exports = __toCommonJS(index_exports);
-var vscode = __toESM(require("vscode"));
+var vscode2 = __toESM(require("vscode"));
 var crypto = __toESM(require("crypto"));
-var fs = __toESM(require("fs"));
-var path = __toESM(require("path"));
+var fs3 = __toESM(require("fs"));
+var path3 = __toESM(require("path"));
+
+// src/utils/claudeInterceptor.ts
+var fs = __toESM(require("fs"), 1);
+var path = __toESM(require("path"), 1);
+var os = __toESM(require("os"), 1);
+var CLAUDE_SETTINGS_PATH = path.join(os.homedir(), ".claude", "settings.json");
+var BACKUP_SETTINGS_PATH = path.join(os.homedir(), ".catbox", "settings.backup.json");
+function formatSpinnerVerb(adText) {
+  const trimmed = adText.trim();
+  if (trimmed.startsWith("\u2736")) {
+    return trimmed;
+  }
+  return `\u2736 ${trimmed}`;
+}
+function buildSpinnerVerbsConfig(adText) {
+  return {
+    mode: "replace",
+    verbs: [formatSpinnerVerb(adText)]
+  };
+}
+async function injectCatboxVerbs(adText) {
+  try {
+    const claudeDir = path.dirname(CLAUDE_SETTINGS_PATH);
+    const catboxDir = path.dirname(BACKUP_SETTINGS_PATH);
+    if (!fs.existsSync(claudeDir)) fs.mkdirSync(claudeDir, { recursive: true });
+    if (!fs.existsSync(catboxDir)) fs.mkdirSync(catboxDir, { recursive: true });
+    let settings = {};
+    if (fs.existsSync(CLAUDE_SETTINGS_PATH)) {
+      const raw = fs.readFileSync(CLAUDE_SETTINGS_PATH, "utf-8");
+      try {
+        settings = JSON.parse(raw || "{}");
+      } catch {
+        settings = {};
+      }
+      if (!fs.existsSync(BACKUP_SETTINGS_PATH)) {
+        fs.writeFileSync(BACKUP_SETTINGS_PATH, raw, "utf-8");
+      }
+    }
+    settings.spinnerVerbs = buildSpinnerVerbsConfig(adText);
+    const tmpPath = `${CLAUDE_SETTINGS_PATH}.tmp`;
+    fs.writeFileSync(tmpPath, JSON.stringify(settings, null, 2), "utf-8");
+    fs.renameSync(tmpPath, CLAUDE_SETTINGS_PATH);
+  } catch (error) {
+    await restoreOriginalSettings();
+    throw error;
+  }
+}
+async function restoreOriginalSettings() {
+  if (fs.existsSync(BACKUP_SETTINGS_PATH)) {
+    fs.copyFileSync(BACKUP_SETTINGS_PATH, CLAUDE_SETTINGS_PATH);
+    try {
+      fs.unlinkSync(BACKUP_SETTINGS_PATH);
+    } catch {
+    }
+  } else if (fs.existsSync(CLAUDE_SETTINGS_PATH)) {
+    try {
+      fs.unlinkSync(CLAUDE_SETTINGS_PATH);
+    } catch {
+    }
+  }
+}
+
+// src/extension/cursorSpinner.ts
+var vscode = __toESM(require("vscode"));
+var fs2 = __toESM(require("fs"));
+var path2 = __toESM(require("path"));
+var os2 = __toESM(require("os"));
+var BACKUP_PATH = path2.join(os2.homedir(), ".catbox", "cursor-spinnerVerbs.backup.json");
+async function injectCursorSpinnerVerbs(adText) {
+  const config = vscode.workspace.getConfiguration("claudeCode");
+  const backupDir = path2.dirname(BACKUP_PATH);
+  if (!fs2.existsSync(backupDir)) {
+    fs2.mkdirSync(backupDir, { recursive: true });
+  }
+  if (!fs2.existsSync(BACKUP_PATH)) {
+    const current = config.get("spinnerVerbs");
+    fs2.writeFileSync(BACKUP_PATH, JSON.stringify(current ?? null), "utf-8");
+  }
+  await config.update(
+    "spinnerVerbs",
+    buildSpinnerVerbsConfig(adText),
+    vscode.ConfigurationTarget.Global
+  );
+}
+async function restoreCursorSpinnerVerbs() {
+  if (!fs2.existsSync(BACKUP_PATH)) {
+    return;
+  }
+  const backup = JSON.parse(fs2.readFileSync(BACKUP_PATH, "utf-8"));
+  const config = vscode.workspace.getConfiguration("claudeCode");
+  if (backup === null) {
+    await config.update("spinnerVerbs", void 0, vscode.ConfigurationTarget.Global);
+  } else {
+    await config.update("spinnerVerbs", backup, vscode.ConfigurationTarget.Global);
+  }
+  try {
+    fs2.unlinkSync(BACKUP_PATH);
+  } catch {
+  }
+}
+
+// src/extension/index.ts
 var statusBarItem;
 var visualAdProvider;
 var currentAd = {
@@ -55,21 +157,21 @@ var VISUAL_PANEL_IMAGE = "assets/sponsor-ad-1.jpeg";
 var VISUAL_PANEL_LINK = "https://www.instagram.com/lastortasdemamamabel";
 var VISUAL_PANEL_COPY = "Las Tortas de Mam\xE1 Mabel";
 function isVisualAdEnabled() {
-  return vscode.workspace.getConfiguration("catbox").get("visualAd.enabled") === true;
+  return vscode2.workspace.getConfiguration("catbox").get("visualAd.enabled") === true;
 }
 function getDailyTelemetryToken() {
   const dateStr = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
   return crypto.createHmac("sha256", TELEMETRY_SECRET).update(dateStr).digest("hex");
 }
 function getUserId() {
-  const folders = vscode.workspace.workspaceFolders;
+  const folders = vscode2.workspace.workspaceFolders;
   if (!folders?.length) {
     return "my_account";
   }
-  const metaPath = path.join(folders[0].uri.fsPath, "metadata.json");
+  const metaPath = path3.join(folders[0].uri.fsPath, "metadata.json");
   try {
-    if (fs.existsSync(metaPath)) {
-      const meta = JSON.parse(fs.readFileSync(metaPath, "utf-8"));
+    if (fs3.existsSync(metaPath)) {
+      const meta = JSON.parse(fs3.readFileSync(metaPath, "utf-8"));
       return meta.CATBOX_PUB_ID || meta.CATBOX_WALLET || "my_account";
     }
   } catch {
@@ -108,7 +210,7 @@ function scheduleViewableTracking(adId, campaignId, surface) {
     if (visualViewableTimer) clearTimeout(visualViewableTimer);
     visualViewableTracked = false;
     visualViewableTimer = setTimeout(() => {
-      if (vscode.window.state.focused && !visualViewableTracked && isVisualAdEnabled()) {
+      if (vscode2.window.state.focused && !visualViewableTracked && isVisualAdEnabled()) {
         visualViewableTracked = true;
         emitTelemetry("impression_viewable", adId, campaignId, "visual_panel");
       }
@@ -118,7 +220,7 @@ function scheduleViewableTracking(adId, campaignId, surface) {
   if (viewableTimer) clearTimeout(viewableTimer);
   statusBarViewableTracked = false;
   viewableTimer = setTimeout(() => {
-    if (vscode.window.state.focused && !statusBarViewableTracked) {
+    if (vscode2.window.state.focused && !statusBarViewableTracked) {
       statusBarViewableTracked = true;
       emitTelemetry("impression_viewable", adId, campaignId, "statusbar");
     }
@@ -140,7 +242,7 @@ async function reportClick(surface) {
     return;
   }
   if (!currentAd.link) return;
-  vscode.env.openExternal(vscode.Uri.parse(currentAd.link));
+  vscode2.env.openExternal(vscode2.Uri.parse(currentAd.link));
   try {
     await fetch(`${MAIN_SERVER}/api/atomic/report-click`, {
       method: "POST",
@@ -166,7 +268,7 @@ async function reportClick(surface) {
 async function reportVisualPanelClick() {
   const adId = "visual_panel_default";
   const campaignId = "visual_panel_house";
-  vscode.env.openExternal(vscode.Uri.parse(VISUAL_PANEL_LINK));
+  vscode2.env.openExternal(vscode2.Uri.parse(VISUAL_PANEL_LINK));
   try {
     await fetch(`${MAIN_SERVER}/api/atomic/report-click`, {
       method: "POST",
@@ -202,7 +304,7 @@ var CatboxVisualAdProvider = class {
     this.view = webviewView;
     this.setVisualImageUri(
       webviewView.webview.asWebviewUri(
-        vscode.Uri.joinPath(this.extensionUri, ...VISUAL_PANEL_IMAGE.split("/"))
+        vscode2.Uri.joinPath(this.extensionUri, ...VISUAL_PANEL_IMAGE.split("/"))
       )
     );
     webviewView.webview.options = {
@@ -214,7 +316,7 @@ var CatboxVisualAdProvider = class {
         await reportClick("visual_panel");
       }
       if (msg?.type === "hide") {
-        await vscode.commands.executeCommand("catbox.hideVisualAd");
+        await vscode2.commands.executeCommand("catbox.hideVisualAd");
       }
     });
     webviewView.onDidChangeVisibility(() => {
@@ -310,13 +412,13 @@ var CatboxVisualAdProvider = class {
 function showVisualOnboarding(context) {
   if (context.globalState.get("catbox.visualAd.onboardingShown")) return;
   context.globalState.update("catbox.visualAd.onboardingShown", true);
-  vscode.window.showInformationMessage(
+  vscode2.window.showInformationMessage(
     "Catbox: Optional pets-sized sponsor panel can earn extra revenue. Dev-tool ads only. Enable anytime in settings.",
     "Enable panel",
     "Not now"
   ).then((choice) => {
     if (choice === "Enable panel") {
-      vscode.commands.executeCommand("catbox.enableVisualAd");
+      vscode2.commands.executeCommand("catbox.enableVisualAd");
     }
   });
 }
@@ -326,35 +428,43 @@ function applyAdToSurfaces() {
     visualAdProvider?.update(currentAd);
   }
 }
+async function injectSpinnerFromAd(adText) {
+  try {
+    await injectCatboxVerbs(adText);
+    await injectCursorSpinnerVerbs(adText);
+  } catch (err) {
+    console.warn("[Catbox Extension] Spinner inject failed:", err);
+  }
+}
 function activate(context) {
   visualAdProvider = new CatboxVisualAdProvider(context.extensionUri);
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider("catbox.visualAd", visualAdProvider, {
+    vscode2.window.registerWebviewViewProvider("catbox.visualAd", visualAdProvider, {
       webviewOptions: { retainContextWhenHidden: true }
     })
   );
-  statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+  statusBarItem = vscode2.window.createStatusBarItem(vscode2.StatusBarAlignment.Right, 100);
   statusBarItem.command = "catbox.openAd";
   statusBarItem.tooltip = "Sponsored by Catbox \u2022 Click to support & explore details";
   statusBarItem.text = "$(globe) Catbox: Connecting...";
   statusBarItem.show();
-  const openAdCommand = vscode.commands.registerCommand("catbox.openAd", () => {
+  const openAdCommand = vscode2.commands.registerCommand("catbox.openAd", () => {
     reportClick("statusbar");
   });
-  const enableVisualCommand = vscode.commands.registerCommand("catbox.enableVisualAd", async () => {
-    await vscode.workspace.getConfiguration("catbox").update("visualAd.enabled", true, vscode.ConfigurationTarget.Global);
-    await vscode.commands.executeCommand("catbox.visualAd.focus");
+  const enableVisualCommand = vscode2.commands.registerCommand("catbox.enableVisualAd", async () => {
+    await vscode2.workspace.getConfiguration("catbox").update("visualAd.enabled", true, vscode2.ConfigurationTarget.Global);
+    await vscode2.commands.executeCommand("catbox.visualAd.focus");
     visualAdProvider?.update(currentAd);
     await onAdDisplayed("visual_panel");
-    vscode.window.showInformationMessage("Catbox visual sponsor panel enabled. Hide anytime via panel button or settings.");
+    vscode2.window.showInformationMessage("Catbox visual sponsor panel enabled. Hide anytime via panel button or settings.");
   });
-  const hideVisualCommand = vscode.commands.registerCommand("catbox.hideVisualAd", async () => {
-    await vscode.workspace.getConfiguration("catbox").update("visualAd.enabled", false, vscode.ConfigurationTarget.Global);
-    vscode.window.showInformationMessage("Catbox visual sponsor panel hidden.");
+  const hideVisualCommand = vscode2.commands.registerCommand("catbox.hideVisualAd", async () => {
+    await vscode2.workspace.getConfiguration("catbox").update("visualAd.enabled", false, vscode2.ConfigurationTarget.Global);
+    vscode2.window.showInformationMessage("Catbox visual sponsor panel hidden.");
   });
-  const configListener = vscode.workspace.onDidChangeConfiguration((e) => {
+  const configListener = vscode2.workspace.onDidChangeConfiguration((e) => {
     if (e.affectsConfiguration("catbox.visualAd.enabled") && isVisualAdEnabled()) {
-      vscode.commands.executeCommand("catbox.visualAd.focus").then(void 0, () => void 0);
+      vscode2.commands.executeCommand("catbox.visualAd.focus").then(void 0, () => void 0);
       visualAdProvider?.update(currentAd);
       onAdDisplayed("visual_panel").catch(() => void 0);
     }
@@ -362,7 +472,7 @@ function activate(context) {
   const fetchAdPayload = async () => {
     try {
       const token = getDailyTelemetryToken();
-      const useMock = process.env.CATBOX_MOCK_AD === "1" || context.extensionMode === vscode.ExtensionMode.Development;
+      const useMock = process.env.CATBOX_MOCK_AD === "1" || context.extensionMode === vscode2.ExtensionMode.Development;
       const mockQuery = useMock ? "&mock=1" : "";
       const response = await fetch(`${MAIN_SERVER}/api/atomic/stream?token=${token}${mockQuery}`, {
         headers: { "x-catbox-telemetry-token": token }
@@ -380,6 +490,7 @@ function activate(context) {
             providerType: data.providerType
           };
           applyAdToSurfaces();
+          await injectSpinnerFromAd(currentAd.text);
           await onAdDisplayed("statusbar");
           if (isVisualAdEnabled()) {
             await onAdDisplayed("visual_panel");
@@ -417,6 +528,7 @@ function activate(context) {
         campaignId: fallback.campaign_id
       };
       applyAdToSurfaces();
+      await injectSpinnerFromAd(currentAd.text);
       await onAdDisplayed("statusbar");
     }
   };
@@ -437,10 +549,12 @@ function activate(context) {
     }
   });
 }
-function deactivate() {
+async function deactivate() {
   if (viewableTimer) clearTimeout(viewableTimer);
   if (visualViewableTimer) clearTimeout(visualViewableTimer);
   if (statusBarItem) statusBarItem.hide();
+  await restoreCursorSpinnerVerbs();
+  await restoreOriginalSettings();
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {

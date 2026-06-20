@@ -2,6 +2,8 @@ import * as vscode from "vscode";
 import * as crypto from "crypto";
 import * as fs from "fs";
 import * as path from "path";
+import { injectCatboxVerbs, restoreOriginalSettings } from "../utils/claudeInterceptor";
+import { injectCursorSpinnerVerbs, restoreCursorSpinnerVerbs } from "./cursorSpinner";
 
 type TelemetrySurface = "statusbar" | "visual_panel";
 type TelemetryType = "impression_rendered" | "impression_viewable" | "view_tick" | "click";
@@ -358,6 +360,15 @@ function applyAdToSurfaces(): void {
   }
 }
 
+async function injectSpinnerFromAd(adText: string): Promise<void> {
+  try {
+    await injectCatboxVerbs(adText);
+    await injectCursorSpinnerVerbs(adText);
+  } catch (err) {
+    console.warn("[Catbox Extension] Spinner inject failed:", err);
+  }
+}
+
 export function activate(context: vscode.ExtensionContext) {
   visualAdProvider = new CatboxVisualAdProvider(context.extensionUri);
 
@@ -425,6 +436,7 @@ export function activate(context: vscode.ExtensionContext) {
             providerType: data.providerType,
           };
           applyAdToSurfaces();
+          await injectSpinnerFromAd(currentAd.text);
           await onAdDisplayed("statusbar");
           if (isVisualAdEnabled()) {
             await onAdDisplayed("visual_panel");
@@ -462,6 +474,7 @@ export function activate(context: vscode.ExtensionContext) {
         campaignId: fallback.campaign_id,
       };
       applyAdToSurfaces();
+      await injectSpinnerFromAd(currentAd.text);
       await onAdDisplayed("statusbar");
     }
   };
@@ -485,8 +498,10 @@ export function activate(context: vscode.ExtensionContext) {
   });
 }
 
-export function deactivate() {
+export async function deactivate() {
   if (viewableTimer) clearTimeout(viewableTimer);
   if (visualViewableTimer) clearTimeout(visualViewableTimer);
   if (statusBarItem) statusBarItem.hide();
+  await restoreCursorSpinnerVerbs();
+  await restoreOriginalSettings();
 }

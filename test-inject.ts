@@ -19,12 +19,15 @@ async function runSmokeTest() {
   try {
     await injectCatboxVerbs(testString);
     const postInject = JSON.parse(fs.readFileSync(targetPath, 'utf-8'));
-    const assertValue = postInject.spinnerVerbs?.[0] === testString;
-    
+    const assertValue =
+      postInject.spinnerVerbs?.mode === "replace" &&
+      postInject.spinnerVerbs?.verbs?.[0] === testString;
+
     await restoreOriginalSettings();
     const targetPathExistsAfter = fs.existsSync(targetPath);
     const postRestore = targetPathExistsAfter ? JSON.parse(fs.readFileSync(targetPath, 'utf-8')) : {};
-    const assertRestore = postRestore.spinnerVerbs?.[0] !== testString;
+    const restoredVerb = postRestore.spinnerVerbs?.verbs?.[0] ?? postRestore.spinnerVerbs?.[0];
+    const assertRestore = restoredVerb !== testString;
 
     console.log(assertValue && assertRestore ? "🟢 PASS" : "🔴 FAIL");
   } catch (e) {

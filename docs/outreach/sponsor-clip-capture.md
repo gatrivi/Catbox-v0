@@ -72,3 +72,9 @@ Cursor: The AI code editor. Built for pair-programming with agents at scale.
 | Aurum / CATTBACKS | Estás en F5 dev host — usar Cursor principal |
 | Creative incorrecto | Reload window; Cursor tiene CPM 50 (gana weighted selection) |
 | No aparece ad | `npm run compile:extension` + reload |
+
+---
+
+## Claude sidebar spinner
+
+See [claude-spinner-remote.md](../integrations/claude-spinner-remote.md) for zero-token verification before spending Claude credits.

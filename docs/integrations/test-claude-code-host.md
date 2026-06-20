@@ -37,6 +37,13 @@ npm run compile:extension
 ```bash
 npm run dev
 npm run test:extension-cpm
+npx tsx test-inject.ts
 ```
 
 Hits `:3000/api/atomic/stream` — same path as the real extension.
+
+## Claude sidebar spinner (main Cursor window, not F5)
+
+F5 dev host is for status bar mock ads only. For **Claude Code sidebar spinner** on a real machine, use [claude-spinner-remote.md](claude-spinner-remote.md).
+
+Quick pass (zero tokens): after install + reload, User settings JSON must contain auto-written `claudeCode.spinnerVerbs`.

@@ -2,7 +2,7 @@
   "name": "catbox-vscode",
   "displayName": "Catbox Status Bar Streamer",
   "description": "Text-native status bar ads and optional pets-sized visual sponsor panel.",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "publisher": "Catbox",
   "license": "AGPL-3.0-only",
   "engines": {

@@ -11,7 +11,8 @@ export const directSponsorAdapter: ProviderAdapter = {
       const manifestPath = provider.manifestPath || "/manifest.json";
       const url = provider.baseUrl.replace(/\/$/, "") + manifestPath;
       const items = await fetchSecureManifest(url);
-      if (items.length > 0) return items;
+      const remoteItems = items.filter((item) => !item.id.startsWith("fb_"));
+      if (remoteItems.length > 0) return remoteItems;
     }
 
     const slug = provider.id.replace(/^prov_/, "");

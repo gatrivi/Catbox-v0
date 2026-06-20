@@ -26,11 +26,16 @@ We'd like to offer [Company] a **fixed monthly terminal placement**:
 
 Early pricing: **$[X]/month** for [Y]k guaranteed impressions, or CPM at $[Z].
 
-Demo: run Catbox locally and `GET /api/providers/prov_direct_[brand]/manifest` for sample creative.
+I've attached a screenshot of the live placement in VS Code (status bar, opt-in, no cookies or prompt tracking).
 
 Happy to jump on a 15-min call.
 
 [Your name]
+
+## Ready-to-send copies
+
+- Cursor: [email-cursor-ready.md](email-cursor-ready.md)
+- Screenshot + video guide: [sponsor-clip-capture.md](sponsor-clip-capture.md)
 
 ## Activate after deal
 

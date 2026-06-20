@@ -19,6 +19,7 @@ export type ProviderType =
   | "sovrn"
   | "infolinks"
   | "direct_sponsor"
+  | "adsterra_smartlink"
   | "custom";
 
 export interface AdProvider {

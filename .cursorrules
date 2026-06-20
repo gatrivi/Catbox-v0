@@ -1,0 +1,250 @@
+# Catbox-v0 — Reglas del Proyecto
+
+> Reglas para agentes de IA y desarrolladores. Workflow y documentación en **español**.
+
+---
+
+## 1. Identidad del Proyecto
+
+**Catbox** es una aplicación full-stack monolítica para monetización publicitaria orientada a desarrolladores: ledger auditable, redes CPM, telemetría, escrow y extensión VS Code.
+
+| Área | Ubicación |
+|------|-----------|
+| Backend Express | `server.ts` |
+| UI React SPA | `src/App.tsx` (entrada: `src/main.tsx`) |
+| Tipos compartidos | `src/types.ts` |
+| Telemetría | `src/utils/telemetryClient.ts`, `src/server/telemetryDb.ts` |
+| Motor atómico (legacy) | `src/utils/atomicEngine.ts` (puerto `5176`; extensión usa `:3000`) |
+| Seguridad de creativos | `src/server/manifestEngine.ts` |
+| Extensión VS Code | `vscode-extension/`, fuente: `src/extension/index.ts` |
+
+### Stack (NO usar Firebase)
+
+- TypeScript, React 19, Vite 6, Tailwind CSS 4, Express 4
+- Persistencia: JSON en `./data/*`; opcional PostgreSQL (`DATABASE_URL`) y Redis (`REDIS_URL`) para telemetría
+- Tests: Vitest (`npm test`); pre-ship: `npm run test:pre-ship`
+- IA: Gemini (`@google/genai`, `POST /api/gemini/cli`)
+
+### Rutas UI (hash router)
+
+`#/dashboard` · `#/cli` · `#/ledger` · `#/privacy` · landing `#/`
+
+### Dominio clave
+
+- Ledger (`Block`), perfiles (`DevProfile`), proveedores CPM (`AdProvider`)
+- Split típico: 85% dev / 15% plataforma
+- **No hay autenticación de usuarios** — perfiles locales; token HMAC para atomic stream
+
+---
+
+## 2. Estructura de Documentación
+
+```
+docs/
+├── README.md              # Índice maestro
+├── audits/                # Informes de auditoría (IA)
+├── changelogs/            # Cambios grandes (IA)
+├── prompts/               # Prompts maestros — gate Procede
+├── reference/             # Arquitectura, gap reports, CPM, pre-ship
+├── integrations/          # Claude, Kimi, extension host
+└── outreach/              # Pitch a redes CPM
+```
+
+### Referencia obligatoria antes de cambios grandes
+
+- `docs/reference/Catbox-Architecture.md`
+- `docs/reference/Catbox-Gap-Report.md`
+- `docs/reference/Catbox-Live-CPM.md`
+- `docs/reference/pre-ship-certainty.md`
+- `HOW_TO_USE.md` (raíz)
+
+---
+
+## 3. Flujo Obligatorio de Documentación
+
+### 3.1 Auditorías → `docs/audits/`
+
+**Cuándo**: al completar **cualquier** auditoría.
+
+**Nombre**: `{audit-name}_{YYYY-MM-DD}.md`
+
+**Ejemplos**: `seguridad-api-sin-auth_2026-06-19.md`, `pre-ship-extension-cpm_2026-06-19.md`
+
+**Contenido mínimo**: fecha/alcance, metodología, hallazgos (crítico→bajo), evidencia, recomendaciones, estado.
+
+---
+
+### 3.2 Changelogs → `docs/changelogs/`
+
+**Cuándo**: tras un **cambio grande** (ver sección 4).
+
+**Nombre**: `{slug-descriptivo}_{YYYY-MM-DD}.md`
+
+**Contenido mínimo**: resumen, motivación, archivos tocados, API/UI afectados, breaking changes, env vars, cómo probar, deuda técnica.
+
+---
+
+### 3.3 Prompts maestros → `docs/prompts/` (puerta **Procede**)
+
+**Cuándo**: el usuario solicita un cambio, feature, refactor o tarea no trivial.
+
+```
+INVESTIGAR  → codebase + chat + web si aplica
+REDACTAR    → prompt maestro (plantilla: docs/prompts/PROMPT-TEMPLATE.md)
+GUARDAR     → docs/prompts/{slug}_{YYYY-MM-DD}.md
+PRESENTAR   → resumen + ruta del archivo
+ESPERAR     → palabra clave exacta: "Procede"
+EJECUTAR    → solo después de "Procede"
+```
+
+**Reglas del gate Procede**:
+
+| Situación | Acción |
+|-----------|--------|
+| Sin **Procede** | No editar código, no commits, no cambios destructivos |
+| Con **Procede** | Ejecutar el plan del prompt maestro guardado |
+| "Hazlo ya" sin **Procede** | Pedir confirmación con la palabra clave exacta |
+| Preguntas puras / auditorías explícitas | Sin gate |
+
+**Nombre**: `{feature-o-tarea}_{YYYY-MM-DD}.md`
+
+---
+
+## 4. Qué Cuenta como "Cambio Grande"
+
+Registrar changelog si **cualquiera** se cumple:
+
+| Criterio | Umbral |
+|----------|--------|
+| Archivos de código | ≥ 5 (excl. solo docs) |
+| Líneas netas en lógica | ≥ 150 |
+| API pública | Nuevo endpoint, cambio de contrato JSON, ruta eliminada |
+| Persistencia | `./data/*`, migración PG, ledger |
+| Seguridad | manifestEngine, cifrado, tokens atomic |
+| Telemetría | Pipeline ingestión, dedup, cola cliente |
+| UI estructural | Nueva ruta hash, paneles principales |
+| Extensión VS Code | Stream, reporting, empaquetado |
+| Dependencias | Nueva dep runtime o upgrade mayor de framework |
+| Refactor transversal | Extracción desde `server.ts` o `App.tsx` |
+
+**No requiere changelog**: typos, copy menor, docs sin lógica, fixes < 30 líneas sin impacto API.
+
+---
+
+## 5. Checklist de Investigación (pre-prompt maestro)
+
+### Codebase
+
+- [ ] `docs/reference/Catbox-Architecture.md` si toca backend/UI/atomic
+- [ ] `docs/reference/Catbox-Gap-Report.md`
+- [ ] `server.ts` (rutas, store, errores)
+- [ ] `src/App.tsx` si toca UI
+- [ ] `src/types.ts`
+- [ ] Grep de símbolos/endpoints afectados
+- [ ] Tests en `scripts/` y `*.test.ts`
+
+### Chat
+
+- [ ] Restricciones explícitas del usuario en la sesión
+
+### Web (si aplica)
+
+- [ ] APIs CPM, Gemini, dependencias con breaking changes
+- [ ] **No** buscar Firebase — no es parte del stack
+
+### Riesgos Catbox
+
+- [ ] ¿Ledger/escrow/balance? → reglas de negocio
+- [ ] ¿Creativos remotos? → `manifestEngine`
+- [ ] ¿Atomic stream? → token HMAC; extensión en `:3000`
+- [ ] ¿Asume auth? → prohibido sin requisito explícito
+
+---
+
+## 6. Convenciones de Código
+
+1. **Diff mínimo** — menor cambio correcto
+2. **No sobre-ingeniería**
+3. **Seguir patrones existentes** en `server.ts` y `App.tsx`
+4. **Comentarios** solo para lógica de negocio no obvia
+5. **Tests** solo si aportan cobertura real
+
+### Backend (`server.ts`)
+
+- Rutas `/api/*`; JSON `{ success: boolean, ... }`
+- Errores: `try/catch`, `res.status(500).json({ success: false, error: error.message })`
+- Persistencia vía `store` y `./data/*.json`
+- Lógica pesada → `src/server/`
+
+### Frontend (`src/App.tsx`)
+
+- Estado `useState`/`useEffect`; hash router manual
+- `fetch` a rutas relativas; tipos desde `src/types.ts`
+- Telemetría: `telemetry` de `src/utils/telemetryClient.ts`
+
+### Seguridad
+
+- Manifests remotos solo vía `fetchSecureManifest` / validación
+- No exponer secretos en cliente
+
+### Extensión VS Code
+
+- `npm run compile:extension`
+- Poll: `http://127.0.0.1:3000/api/atomic/stream?token=...`
+
+### Prohibido sin requisito explícito
+
+- Firebase / Firestore
+- Auth OAuth/sesiones
+- Romper JSON en `./data/` sin migración
+- Refactor total de `App.tsx` o `server.ts`
+- Commits o push sin petición del usuario
+
+---
+
+## 7. Git
+
+- **Nunca** commit salvo petición explícita
+- **Nunca** `push --force` a main/master
+- **Nunca** modificar `git config` ni saltar hooks
+- **Nunca** commitear `.env` ni claves reales
+
+---
+
+## 8. Refrescar Contexto
+
+| Situación | Acción |
+|-----------|--------|
+| Nueva sesión / contexto perdido | Últimos 3 changelogs + `docs/reference/Catbox-Architecture.md` |
+| Bug en área reciente | Changelog del área |
+| Antes de refactor grande | Changelogs previos + auditorías críticas en `docs/audits/` |
+| Cambio pendiente | Leer prompt en `docs/prompts/` antes de **Procede** |
+
+---
+
+## 9. Comandos
+
+```bash
+npm run dev
+npm run build
+npm run lint
+npm test
+npm run test:pre-ship
+npm run compile:extension
+npm run seed:ad-networks
+```
+
+---
+
+## 10. Resumen Rápido
+
+```
+AUDITORÍA terminada     → docs/audits/{nombre}_{fecha}.md
+CAMBIO GRANDE hecho     → docs/changelogs/{slug}_{fecha}.md
+USUARIO PIDE CAMBIO     → investigar → docs/prompts/{slug}_{fecha}.md → esperar "Procede"
+PREGUNTA / REVISIÓN     → sin gate Procede
+COMMIT / PUSH           → solo si el usuario lo pide
+CONTEXTO FRÍO           → changelogs recientes + Catbox-Architecture.md
+FIREBASE                → no usar
+AUTH                    → no asumir
+```

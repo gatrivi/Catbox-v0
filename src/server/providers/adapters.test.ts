@@ -7,6 +7,13 @@ import { buySellAdsAdapter } from "./buysellads";
 import { pavedAdapter } from "./paved";
 import { sovrnAdapter } from "./sovrn";
 import { infolinksAdapter } from "./infolinks";
+import { directSponsorAdapter } from "./directSponsor";
+import {
+  adsterraSmartlinkAdapter,
+  appendPlacementSubId,
+  buildSmartlinkManifestItem,
+  resolveSmartlinkUrl,
+} from "./adsterra";
 import { selectWeightedCreative } from "./index";
 import type { AdProvider } from "../../types";
 import type { TaggedCreative } from "./types";
@@ -70,6 +77,44 @@ describe("provider adapters (fixture fallback)", () => {
     );
     expect(items.length).toBeGreaterThan(0);
   });
+
+  test("direct_sponsor falls back to local fixture when remote returns house ads", async () => {
+    const items = await directSponsorAdapter.fetchCreatives(
+      baseProvider({
+        id: "prov_direct_cursor",
+        providerType: "direct_sponsor",
+        baseUrl: "https://cursor.com",
+      })
+    );
+    expect(items.length).toBeGreaterThan(0);
+    expect(items[0].text).toContain("Cursor");
+    expect(items[0].id).not.toMatch(/^fb_/);
+  });
+
+  test("adsterra_smartlink loads local fixture when no env URL", async () => {
+    const prev = process.env.ADSTERRA_SMARTLINK_URL;
+    delete process.env.ADSTERRA_SMARTLINK_URL;
+    const items = await adsterraSmartlinkAdapter.fetchCreatives(
+      baseProvider({ providerType: "adsterra_smartlink", baseUrl: "" })
+    );
+    if (prev !== undefined) process.env.ADSTERRA_SMARTLINK_URL = prev;
+    expect(items.length).toBeGreaterThan(0);
+    expect(isValidAdItem(items[0])).toBe(true);
+  });
+
+  test("adsterra_smartlink builds live URL with placement_sub_id", async () => {
+    const prev = process.env.ADSTERRA_SMARTLINK_URL;
+    process.env.ADSTERRA_SMARTLINK_URL = "https://smartlink.example.test/go";
+    const items = await adsterraSmartlinkAdapter.fetchCreatives(
+      baseProvider({ providerType: "adsterra_smartlink" }),
+      { surface: "vscode_statusbar" }
+    );
+    if (prev !== undefined) process.env.ADSTERRA_SMARTLINK_URL = prev;
+    else delete process.env.ADSTERRA_SMARTLINK_URL;
+    expect(items).toHaveLength(1);
+    expect(items[0].link).toContain("placement_sub_id=catbox_vscode_statusbar_");
+    expect(items[0].text.length).toBeGreaterThan(0);
+  });
 });
 
 describe("selectWeightedCreative", () => {
@@ -93,5 +138,37 @@ describe("hashAdCore", () => {
     const core = { id: "x", text: "y", link: "https://z.com" };
     expect(hashAdCore(core)).toBe(hashAdCore(core));
     expect(hashAdCore(core)).toMatch(/^[0-9a-f]{64}$/);
+  });
+});
+
+describe("adsterra smartlink helpers", () => {
+  test("appendPlacementSubId adds query param", () => {
+    expect(appendPlacementSubId("https://go.test/a", "sub_1")).toBe(
+      "https://go.test/a?placement_sub_id=sub_1"
+    );
+    expect(appendPlacementSubId("https://go.test/a?x=1", "sub_2")).toBe(
+      "https://go.test/a?x=1&placement_sub_id=sub_2"
+    );
+  });
+
+  test("buildSmartlinkManifestItem includes hash", () => {
+    const item = buildSmartlinkManifestItem(
+      "https://go.test/sl",
+      { surface: "terminal" },
+      "Test sponsor"
+    );
+    expect(item.text).toBe("Test sponsor");
+    expect(item.link).toContain("placement_sub_id=");
+    expect(item.hash).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  test("resolveSmartlinkUrl prefers env over provider baseUrl", () => {
+    const prev = process.env.ADSTERRA_SMARTLINK_URL;
+    process.env.ADSTERRA_SMARTLINK_URL = "https://env.test/link";
+    expect(resolveSmartlinkUrl({ baseUrl: "https://provider.test" } as AdProvider)).toBe(
+      "https://env.test/link"
+    );
+    if (prev !== undefined) process.env.ADSTERRA_SMARTLINK_URL = prev;
+    else delete process.env.ADSTERRA_SMARTLINK_URL;
   });
 });

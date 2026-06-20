@@ -4,6 +4,7 @@ import { checkAndMarkDuplicate } from "../telemetryDb";
 import { reportCarbonEvent, carbonReporterConfigured } from "./reporting/carbon";
 import { reportBsaEvent, bsaReporterConfigured } from "./reporting/buysellads";
 import { reportPavedEvent, pavedReporterConfigured } from "./reporting/paved";
+import { reportAdsterraEvent, adsterraReporterConfigured } from "./reporting/adsterra";
 import type { StreamAdPayload } from "../adSelection";
 import { HOUSE_AD } from "../adSelection";
 
@@ -36,6 +37,8 @@ function providerHasOutboundConfig(providerType: string): boolean {
       return bsaReporterConfigured();
     case "paved":
       return pavedReporterConfigured();
+    case "adsterra_smartlink":
+      return adsterraReporterConfigured();
     default:
       return false;
   }
@@ -49,6 +52,8 @@ async function dispatchToProvider(event: ProviderReportEvent): Promise<ProviderR
       return reportBsaEvent(event);
     case "paved":
       return reportPavedEvent(event);
+    case "adsterra_smartlink":
+      return reportAdsterraEvent(event);
     default:
       return { ok: true, skipped: true, reason: "unsupported_provider" };
   }

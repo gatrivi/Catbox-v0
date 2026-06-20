@@ -42,9 +42,9 @@
     "providerType": "direct_sponsor",
     "sharedWithCommunity": false,
     "creatorId": "my_account",
-    "cpmRate": 12.0,
+    "cpmRate": 50.0,
     "priority": 95,
-    "status": "pending_verification"
+    "status": "active"
   },
   {
     "id": "prov_direct_vercel",

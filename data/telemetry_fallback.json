@@ -4028,5 +4028,45 @@
     "surface": "statusbar",
     "type": "impression_rendered",
     "visible_duration_ms": 0
+  },
+  {
+    "event_id": "6f91659f-f87d-4953-8d58-8495d4d539e6",
+    "user_id": "my_account",
+    "ad_id": "mock_aurum_auth",
+    "campaign_id": "campaign_aurum",
+    "timestamp": "2026-06-20T00:18:23.227Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "8bd9ca2f-81b0-4bd0-9cbe-3d206ced552a",
+    "user_id": "my_account",
+    "ad_id": "test_ad",
+    "campaign_id": "test_campaign",
+    "timestamp": "2026-06-20T00:18:31.974Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "bd8c7af1-777a-46f9-b4cb-55c0205dab8e",
+    "user_id": "my_account",
+    "ad_id": "test_ad",
+    "campaign_id": "test_campaign",
+    "timestamp": "2026-06-20T00:21:13.969Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "98db2c59-7990-4275-8f9f-b3c9f68556bd",
+    "user_id": "my_account",
+    "ad_id": "test_ad",
+    "campaign_id": "test_campaign",
+    "timestamp": "2026-06-20T00:21:37.017Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
   }
 ]

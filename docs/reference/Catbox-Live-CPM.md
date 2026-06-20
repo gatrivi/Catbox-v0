@@ -4,8 +4,8 @@
 
 ## Done checklist
 
-- [ ] Carbon application submitted → [carbon-safe-submission.md](outreach/carbon-safe-submission.md)
-- [ ] Post-approval wiring → [carbon-post-approval.md](outreach/carbon-post-approval.md)
+- [ ] Carbon application submitted → [carbon-safe-submission.md](../outreach/carbon-safe-submission.md)
+- [ ] Post-approval wiring → [carbon-post-approval.md](../outreach/carbon-post-approval.md)
 - [ ] `CATBOX_LIVE_CPM=1` set in production (blocks fixture ads)
 - [ ] `CARBON_CLI_ZONE_ID` or `CARBON_CLI_MANIFEST_URL` from Carbon
 - [ ] `data/provider-reports.jsonl` grows on each billed impression/click
@@ -33,9 +33,9 @@
 | [src/server/providers/carbon.ts](../src/server/providers/carbon.ts) | Inbound creatives |
 | [server.ts](../server.ts) | `GET /api/atomic/stream`, `POST /api/atomic/report-click` |
 | [src/extension/index.ts](../src/extension/index.ts) | Status bar + opt-in visual panel (`catbox.visualAd.enabled`) |
-| [docs/outreach/carbon-classic-pitch.md](outreach/carbon-classic-pitch.md) | Visual 260×200 resubmission copy |
-| [docs/pre-ship-certainty.md](pre-ship-certainty.md) | Payout tests |
-| [docs/outreach/](outreach/) | Application copy |
+| [docs/outreach/carbon-classic-pitch.md](../outreach/carbon-classic-pitch.md) | Visual 260×200 resubmission copy |
+| [docs/reference/pre-ship-certainty.md](pre-ship-certainty.md) | Payout tests |
+| [docs/outreach/](../outreach/) | Application copy |
 
 ## Test
 

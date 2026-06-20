@@ -72,6 +72,17 @@ export const PLAN_NETWORK_PROVIDERS: AdProvider[] = [
     status: "pending_verification",
   },
   {
+    id: "prov_adsterra_smartlink",
+    name: "Adsterra Smartlink",
+    baseUrl: "",
+    providerType: "adsterra_smartlink",
+    sharedWithCommunity: true,
+    creatorId: "my_account",
+    cpmRate: 2.0,
+    priority: 25,
+    status: "pending_verification",
+  },
+  {
     id: "prov_sovrn",
     name: "Sovrn Backfill",
     baseUrl: "https://www.sovrn.com",

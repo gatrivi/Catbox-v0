@@ -7,12 +7,14 @@ import { pavedAdapter } from "./paved";
 import { sovrnAdapter } from "./sovrn";
 import { infolinksAdapter } from "./infolinks";
 import { directSponsorAdapter } from "./directSponsor";
+import { adsterraSmartlinkAdapter } from "./adsterra";
 
 const ADAPTERS: ProviderAdapter[] = [
   carbonCliAdapter,
   buySellAdsAdapter,
   pavedAdapter,
   directSponsorAdapter,
+  adsterraSmartlinkAdapter,
   sovrnAdapter,
   infolinksAdapter,
 ];

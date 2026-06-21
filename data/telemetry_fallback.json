@@ -508,5 +508,205 @@
     "surface": "visual_panel",
     "type": "impression_rendered",
     "visible_duration_ms": 0
+  },
+  {
+    "event_id": "99fd9f1f-11ce-407e-af85-7b0bfe021455",
+    "user_id": "my_account",
+    "ad_id": "bsa_terminal_render",
+    "campaign_id": "campaign_prov_buysellads",
+    "timestamp": "2026-06-20T04:34:07.662Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "828395c8-1411-433f-bbbe-c5a9742fe38b",
+    "user_id": "my_account",
+    "ad_id": "visual_panel_default",
+    "campaign_id": "visual_panel_house",
+    "timestamp": "2026-06-20T04:34:07.670Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "be717bc1-bee3-4e17-992b-3a2d46e35d6b",
+    "user_id": "my_account",
+    "ad_id": "fb_saffron_host",
+    "campaign_id": "campaign_prov_paved",
+    "timestamp": "2026-06-20T04:34:13.656Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "56b8ad13-316c-4304-8bed-edd54db174dd",
+    "user_id": "my_account",
+    "ad_id": "visual_panel_default",
+    "campaign_id": "visual_panel_house",
+    "timestamp": "2026-06-20T04:34:13.665Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "32df96c6-1759-4a24-81ee-068d70ea32af",
+    "user_id": "my_account",
+    "ad_id": "fb_saffron_host",
+    "campaign_id": "campaign_prov_carbon_cli",
+    "timestamp": "2026-06-20T04:34:16.241Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "087715a0-7f07-4603-9921-fa958884bc8e",
+    "user_id": "my_account",
+    "ad_id": "fb_saffron_host",
+    "campaign_id": "campaign_prov_carbon_cli",
+    "timestamp": "2026-06-20T04:34:16.249Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "51bfc62e-35a0-47d2-b4bc-d7ff7a795140",
+    "user_id": "my_account",
+    "ad_id": "fb_saffron_host",
+    "campaign_id": "campaign_prov_carbon_cli",
+    "timestamp": "2026-06-20T04:34:21.247Z",
+    "surface": "statusbar",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "8691a544-4886-4cfd-9457-2a0c7c67cb42",
+    "user_id": "my_account",
+    "ad_id": "fb_saffron_host",
+    "campaign_id": "campaign_prov_carbon_cli",
+    "timestamp": "2026-06-20T04:34:21.262Z",
+    "surface": "visual_panel",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "b82728d2-b43a-42c7-9d4c-3acd8f827d16",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T04:34:30.459Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "aa045f54-c8fb-4ebf-b2e6-c5c4bc4ab25c",
+    "user_id": "my_account",
+    "ad_id": "visual_panel_default",
+    "campaign_id": "visual_panel_house",
+    "timestamp": "2026-06-20T04:34:30.467Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "1fa5e3cd-3382-4a62-813b-7aed71214ca1",
+    "user_id": "my_account",
+    "ad_id": "bsa_terminal_neon",
+    "campaign_id": "campaign_prov_buysellads",
+    "timestamp": "2026-06-20T04:35:07.419Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "cd53131a-2cfe-4ce0-9e78-710297ae3cb5",
+    "user_id": "my_account",
+    "ad_id": "visual_panel_default",
+    "campaign_id": "visual_panel_house",
+    "timestamp": "2026-06-20T04:35:07.427Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "2f4934f1-163b-4503-8db7-4d6d6a84cccb",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T04:35:13.419Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "4ed86144-5ba3-4959-84fd-d36b17fb5b8c",
+    "user_id": "my_account",
+    "ad_id": "visual_panel_default",
+    "campaign_id": "visual_panel_house",
+    "timestamp": "2026-06-20T04:35:13.427Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "071280e2-4941-4794-bfc4-855c6bf2ab23",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T04:35:16.312Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "85080734-fb9f-48e4-bd46-8cd018c7f2fc",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T04:35:16.321Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "6fd88c2f-98de-430e-a561-33ba1fd06964",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T04:35:21.320Z",
+    "surface": "statusbar",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "2b4eb6cc-c9ad-43e4-a52e-733caacdf87b",
+    "user_id": "my_account",
+    "ad_id": "direct_cursor_1",
+    "campaign_id": "campaign_prov_direct_cursor",
+    "timestamp": "2026-06-20T04:35:21.335Z",
+    "surface": "visual_panel",
+    "type": "impression_viewable",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "4976eb6c-1ec2-4b99-aa8e-2e73788ecddb",
+    "user_id": "my_account",
+    "ad_id": "fb_deco_db",
+    "campaign_id": "campaign_prov_paved",
+    "timestamp": "2026-06-20T04:35:32.704Z",
+    "surface": "statusbar",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
+  },
+  {
+    "event_id": "929cd585-687b-4760-9264-018d62af347c",
+    "user_id": "my_account",
+    "ad_id": "visual_panel_default",
+    "campaign_id": "visual_panel_house",
+    "timestamp": "2026-06-20T04:35:32.712Z",
+    "surface": "visual_panel",
+    "type": "impression_rendered",
+    "visible_duration_ms": 0
   }
 ]
